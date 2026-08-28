@@ -30,12 +30,28 @@ BAR_CSS = """.offbar{position:fixed;left:0;right:0;bottom:0;z-index:60;
   border:none;border-radius:2px;padding:4px 10px;cursor:pointer}
 .foot{max-width:1240px;"""
 
-JS = """render();
+JS = """window.DEFER_PHOTOS=true;
+render();
 
-/* ── 離線與安裝 ── */
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-}
+/* ── 離線與安裝 ──
+   照片必須等 Service Worker 接管之後再抓。第一次造訪時 SW 還在安裝，
+   這時發出的照片請求不會經過 SW，也就不會進離線快取——到了奧入瀨、
+   十二湖那種沒訊號的地方就一張都看不到（要開第二次才會補上）。
+   文字與地圖不等，先 render()，只延後照片。 */
+(async()=>{
+  if('serviceWorker' in navigator){
+    try{
+      await navigator.serviceWorker.register('./sw.js');
+      if(!navigator.serviceWorker.controller){
+        await Promise.race([
+          new Promise(r=>navigator.serviceWorker.addEventListener('controllerchange',r,{once:true})),
+          new Promise(r=>setTimeout(r,4000))   // 保險，不能無限等
+        ]);
+      }
+    }catch(e){}
+  }
+  loadPhotos();
+})();
 const bar=document.getElementById('offbar');
 function showBar(html,btn){
   if(!bar) return;
