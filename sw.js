@@ -1,4 +1,4 @@
-/* 東北大環線 景點指南 — 離線快取
+/* 南東北環線 景點指南 — 離線快取
  *
  * 注意：jeremyl861225.github.io 上多個 PWA 共用同一個 origin，
  * caches 與 service worker 是整個 origin 共用的命名空間。因此本檔嚴守三條：
@@ -7,7 +7,7 @@
  *   3. 維基照片快取不帶版本號，改版時不會被清掉
  */
 const APP   = 'tohoku-guide-';
-const V     = APP + 'v2';      // 改了 index.html 就把版本號加一
+const V     = APP + 'v3';      // 改了 index.html 就把版本號加一
 const MEDIA = APP + 'media';   // 不帶版本：維基照片跨版本永久保留
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const BASE  = new URL('./', location).pathname;   // '/tohoku-2026/'
@@ -33,7 +33,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // 維基百科的照片與 API：快取優先，抓到就永久留著（山區沒訊號也看得到）
+  // 維基百科的照片與 API：快取優先，抓到就永久留著（蔵王山上、五色沼收訊不穩也看得到）
   const isWiki = /(^|\.)wikipedia\.org$/.test(url.hostname) ||
                  /(^|\.)wikimedia\.org$/.test(url.hostname);
   if (isWiki) {

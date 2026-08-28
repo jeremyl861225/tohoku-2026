@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 東北大環線 景點指南 — 一鍵部署到 GitHub Pages
+# 南東北環線 景點指南 — 一鍵部署到 GitHub Pages
 # 用法：  ./build/deploy.sh [repo名稱]      預設 tohoku-2026
 # PWA 的五個檔案在專案根目錄，Pages 直接以 main / (root) 供應。
 set -euo pipefail
@@ -40,7 +40,7 @@ say "GitHub 帳號：$OWNER"
 # ── 2. 建立本地 commit ─────────────────────────────
 [ -d .git ] || { say "初始化 git repo"; git init -q -b main; }
 git add -A
-git commit -qm "東北大環線 景點指南 PWA (2026.09.22-27)" 2>/dev/null || say "沒有新變更需要提交"
+git commit -qm "南東北環線 景點指南 PWA (2026.09.22-27)" 2>/dev/null || say "沒有新變更需要提交"
 
 # ── 3. 建立或連結遠端 repo ─────────────────────────
 if gh repo view "$OWNER/$REPO" >/dev/null 2>&1; then

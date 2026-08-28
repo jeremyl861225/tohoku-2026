@@ -12,12 +12,12 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-HEAD = """<title>東北大環線 互動式景點指南｜2026.09.22–27</title>
+HEAD = """<title>南東北環線 互動式景點指南｜2026.09.22–27</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#12232E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="東北大環線">
+<meta name="apple-mobile-web-app-title" content="南東北環線">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" href="./icon-192.png">"""
 
@@ -35,8 +35,8 @@ render();
 
 /* ── 離線與安裝 ──
    照片必須等 Service Worker 接管之後再抓。第一次造訪時 SW 還在安裝，
-   這時發出的照片請求不會經過 SW，也就不會進離線快取——到了奧入瀨、
-   十二湖那種沒訊號的地方就一張都看不到（要開第二次才會補上）。
+   這時發出的照片請求不會經過 SW，也就不會進離線快取——到了蔵王山上、
+   五色沼那種收訊不穩的地方就一張都看不到（要開第二次才會補上）。
    文字與地圖不等，先 render()，只延後照片。 */
 (async()=>{
   if('serviceWorker' in navigator){
@@ -83,7 +83,7 @@ def build() -> pathlib.Path:
         raise SystemExit("請先執行 build/build_guide.py")
     s = src.read_text(encoding="utf-8")
 
-    s = sub(s, "<title>東北大環線 互動式景點指南｜2026.09.22–27</title>", HEAD, "head")
+    s = sub(s, "<title>南東北環線 互動式景點指南｜2026.09.22–27</title>", HEAD, "head")
     s = sub(s, '<p class="foot">', '<div id="offbar" class="offbar" hidden></div>\n\n<p class="foot">', "offbar")
     s = sub(s, ".foot{max-width:1240px;", BAR_CSS, "offbar css")
     s = sub(s, "render();\n</script>", JS, "sw register")

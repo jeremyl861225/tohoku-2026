@@ -14,7 +14,7 @@ from playwright.sync_api import sync_playwright
 FOOTER = """<div style="width:100%;font-size:7pt;color:#7A8D97;
   font-family:'Noto Sans CJK TC',sans-serif;padding:0 11mm;
   display:flex;justify-content:space-between;">
-  <span>東北大環線 ROADBOOK · 2026.09.22–09.27</span>
+  <span>南東北環線 ROADBOOK · 2026.09.22–09.27</span>
   <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
 </div>"""
 
