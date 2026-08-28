@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>東北大環線 互動式景點指南｜2026.09.22–27</title>
+<style>
+:root{
+  --ink:#12232E; --ink2:#415866; --ink3:#7A8D97;
+  --paper:#EFF2F1; --card:#FFFFFF;
+  --exp:#0B6E4F; --sign:#114E8C; --aoike:#1C7FC4; --ochre:#B87C1E;
+  --rule:#D3DAD7; --rule2:#E6EBE9; --warn:#A33A2A;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  --sans:"PingFang TC","Hiragino Sans","Noto Sans CJK TC","Noto Sans TC",-apple-system,"Helvetica Neue",sans-serif;
+  --serif:"Songti TC","Hiragino Mincho ProN","Noto Serif CJK TC","Noto Serif TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);
+  font-size:14px;line-height:1.75;letter-spacing:.01em}
+a{color:var(--sign)}
+
+/* ── 頂欄 ── */
+.top{position:sticky;top:0;z-index:40;background:var(--ink);color:#fff;
+  border-bottom:1px solid #0A1720}
+.top-in{max-width:1240px;margin:0 auto;padding:14px 20px 12px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-family:var(--serif);font-size:22px;letter-spacing:.06em;font-weight:700}
+.brand .sub{font-family:var(--mono);font-size:11px;color:#8FB6CE;letter-spacing:.12em}
+.controls{display:flex;gap:10px;align-items:center;margin-top:11px;flex-wrap:wrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;
+  background:transparent;color:#B9CBD6;border:1px solid rgba(255,255,255,.22);
+  padding:5px 11px;border-radius:2px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:rgba(255,255,255,.5);color:#fff}
+.chip[aria-pressed="true"]{background:#fff;color:var(--ink);border-color:#fff;font-weight:600}
+.chip:focus-visible{outline:2px solid #8FB6CE;outline-offset:2px}
+.search{margin-left:auto;position:relative}
+.search input{font-family:var(--sans);font-size:13px;color:#fff;
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);
+  border-radius:2px;padding:6px 11px 6px 30px;width:210px;transition:.15s}
+.search input::placeholder{color:#7D9DB0}
+.search input:focus{outline:none;border-color:#8FB6CE;background:rgba(255,255,255,.15)}
+.search svg{position:absolute;left:9px;top:8px;width:14px;height:14px;stroke:#7D9DB0;
+  fill:none;stroke-width:2}
+.count{font-family:var(--mono);font-size:11px;color:#8FB6CE;white-space:nowrap}
+
+/* ── 版面 ── */
+.wrap{max-width:1240px;margin:0 auto;padding:20px;display:flex;gap:22px;align-items:flex-start}
+.mapside{flex:0 0 396px;position:sticky;top:104px}
+.mapcard{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:14px}
+.mapcard h2{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink3);
+  text-transform:uppercase;margin-bottom:10px}
+.maphint{font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.6;
+  border-top:1px solid var(--rule2);padding-top:9px}
+.list{flex:1 1 auto;min-width:0}
+
+/* ── 地圖 ── */
+svg.map{width:100%;height:auto;display:block;border:1px solid var(--rule2);border-radius:2px}
+.m-sea{fill:#DEE7EB}
+.m-land{fill:#F8FAF9;stroke:#B6C4BF;stroke-width:.7;stroke-linejoin:round}
+.m-lake{fill:#CFDEE6;stroke:#A9BFC9;stroke-width:.6}
+.m-route-case{fill:none;stroke:#fff;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;opacity:.95}
+.m-route{fill:none;stroke:var(--aoike);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.m-back{fill:none;stroke:#7FA6BE;stroke-width:2.2;stroke-dasharray:5 4;stroke-linecap:round}
+.m-dot{fill:var(--aoike);stroke:#fff;stroke-width:1.6}
+.m-dot-stay{fill:var(--ink);stroke:#fff;stroke-width:2}
+.m-dot-term{fill:var(--ochre);stroke:#fff;stroke-width:2}
+.m-dot-term-in{fill:#fff}
+.m-badge{fill:#fff;font-size:9px;font-weight:700;text-anchor:middle;font-family:var(--mono)}
+.m-lbl{fill:var(--ink2);font-size:10.5px;font-family:var(--sans)}
+.m-lbl.strong{fill:var(--ink);font-weight:700}
+.m-pref{fill:#B2C1C4;font-size:11px;letter-spacing:.3em;text-anchor:middle;font-family:var(--sans)}
+.m-scale line{stroke:var(--ink3);stroke-width:1}
+.m-scale text{fill:var(--ink3);font-size:8.5px;text-anchor:middle;font-family:var(--mono)}
+.m-north path{fill:var(--ink3)}
+.m-north text{fill:var(--ink3);font-size:9px;text-anchor:middle;font-family:var(--mono)}
+.m-hit{fill:transparent;cursor:pointer}
+.m-pin{cursor:pointer}
+.m-pin:focus{outline:none}
+.m-pin:focus-visible .m-hit{stroke:var(--ochre);stroke-width:2;fill:rgba(184,124,30,.12)}
+.m-pin:hover .m-lbl,.m-pin.on .m-lbl{fill:var(--ochre);font-weight:700}
+.m-pin:hover .m-dot,.m-pin.on .m-dot{fill:var(--ochre);r:6}
+.m-pin.on .m-dot-stay{fill:var(--ochre)}
+.m-pin.dim{opacity:.28}
+
+/* ── 日期分隔 ── */
+.dayhead{display:flex;align-items:center;gap:14px;margin:26px 0 12px;flex-wrap:wrap}
+.dayhead:first-child{margin-top:0}
+.dayhead .n{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+  background:var(--ink);color:#fff;padding:4px 10px;border-radius:2px}
+.dayhead .r{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:.04em}
+.dayhead .d{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.dayhead .line{flex:1 1 auto;height:1px;background:var(--rule);min-width:20px}
+
+/* ── 卡片 ── */
+.spot{background:var(--card);border:1px solid var(--rule);border-radius:3px;
+  margin-bottom:12px;overflow:hidden;scroll-margin-top:120px;transition:box-shadow .2s,border-color .2s}
+.spot.hl{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(184,124,30,.15)}
+.spot-top{display:flex;gap:0;align-items:stretch}
+.figure{flex:0 0 232px;position:relative;background:#E3E9E7;min-height:172px;overflow:hidden}
+.figure img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .45s}
+.figure img.in{opacity:1}
+.figure .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#E7EDEA,#D9E3E4)}
+.figure .ph svg{width:64px;height:64px;stroke:#A8BAC0;fill:none;stroke-width:1.3}
+.figure figcaption{position:absolute;left:0;right:0;bottom:0;
+  font-size:9.5px;color:#fff;background:linear-gradient(transparent,rgba(18,35,46,.82));
+  padding:16px 8px 5px;letter-spacing:.02em;line-height:1.4}
+.figure figcaption a{color:#CFE2EF;text-decoration:none}
+.figure figcaption a:hover{text-decoration:underline}
+.head{flex:1 1 auto;padding:15px 18px;min-width:0}
+.head .ln1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.head h3{font-size:17px;font-weight:700;letter-spacing:.03em}
+.head .jp{font-size:12px;color:var(--ink3)}
+.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.tg{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:2px 7px;
+  border:1px solid var(--rule);border-radius:2px;color:var(--ink2);background:#F6F8F7}
+.tg.t{color:var(--sign);border-color:#CFDDEE;background:#EEF3F9}
+.tg.s{color:var(--exp);border-color:#CFE3D8;background:#F0F5F2}
+.desc{font-size:13px;color:var(--ink2);line-height:1.72;margin-top:9px}
+.body.hide{display:none}
+dl.f{display:grid;grid-template-columns:max-content 1fr;gap:0 14px;margin-top:12px}
+dl.f dt{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;
+  padding:6px 0;white-space:nowrap}
+dl.f dd{font-size:12.5px;color:var(--ink2);padding:6px 0;line-height:1.6}
+dl.f dt+dd{border-bottom:1px solid var(--rule2)}
+dl.f dt{border-bottom:1px solid var(--rule2)}
+dl.f dt:last-of-type,dl.f dd:last-of-type{border-bottom:none}
+.note{margin-top:11px;font-size:12.5px;line-height:1.65;padding:8px 11px;
+  border-left:3px solid var(--aoike);background:#F4F9FD;border-radius:0 2px 2px 0;color:var(--ink2)}
+.note.cam{border-left-color:var(--ochre);background:#FBF7EE}
+.note b{color:var(--ink)}
+.note .tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink3);margin-right:7px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.acts.bar{padding:11px 18px;border-top:1px solid var(--rule2);background:#FCFDFD}
+.body{padding:14px 18px 4px;border-top:1px solid var(--rule2)}
+.btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-decoration:none;
+  color:var(--ink2);background:#F6F8F7;border:1px solid var(--rule);border-radius:2px;
+  padding:5px 11px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--ink3);color:var(--ink);background:#fff}
+.btn:focus-visible{outline:2px solid var(--aoike);outline-offset:2px}
+.btn.more{margin-right:auto}
+.coord{font-family:var(--mono);font-size:10.5px;color:var(--ink3);align-self:center}
+
+.empty{background:var(--card);border:1px dashed var(--rule);border-radius:3px;
+  padding:34px;text-align:center;color:var(--ink3);font-size:13px}
+.foot{max-width:1240px;margin:0 auto;padding:8px 20px 44px;
+  font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.06em;line-height:1.8}
+
+@media (max-width:980px){
+  .wrap{flex-direction:column;padding:14px}
+  .mapside{position:static;flex:1 1 auto;width:100%;align-self:stretch}
+  .mapcard{max-width:430px;margin:0 auto}
+  .list{width:100%}
+}
+@media (max-width:640px){
+  .top-in{padding:12px 14px 10px}
+  .brand h1{font-size:19px}
+  .search{margin-left:0;width:100%}
+  .search input{width:100%}
+  .spot-top{flex-direction:column}
+  .figure{flex:1 1 auto;width:100%;height:186px;min-height:0}
+  .head{padding:13px 15px}
+  .body{padding:12px 15px 2px}
+  .acts.bar{padding:10px 15px}
+  dl.f{grid-template-columns:1fr;gap:0}
+  dl.f dt{padding:7px 0 0;border-bottom:none}
+  dl.f dt+dd{padding-top:1px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;scroll-behavior:auto!important}
+}
+@media print{
+  .top{position:static}.mapside{position:static}
+  .body.hide{display:block}
+  .spot{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>東北大環線・景點指南</h1>
+      <span class="sub">2026.09.22–27　仙台進出　全程自駕</span>
+      <span class="sub" style="color:#6F93A8">JX862 抵 16:00　／　JX863 起飛 17:20</span>
+    </div>
+    <div class="controls">
+      <div class="chips" id="chips" role="group" aria-label="依日期篩選"></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="搜尋景點、關鍵字…" aria-label="搜尋景點">
+      </div>
+      <span class="count" id="count"></span>
+      <button class="chip" id="reload" hidden title="重新向 Wikipedia 取得照片">重新載入照片</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="mapside">
+    <div class="mapcard">
+      <h2>Route Map　點擊標記可跳至該景點</h2>
+      <!--MAP-->
+      <p class="maphint">海岸線與湖泊為實際地理資料（GSHHS）。地圖標記對應行程主要節點，點一下會捲動到該景點並標示出來。</p>
+    </div>
+  </aside>
+  <main class="list" id="list"></main>
+</div>
+
+<p class="foot">
+  照片由瀏覽器即時向 Wikipedia／Wikimedia Commons 取得，版權屬原作者，授權條款見各圖連結。<br>
+  營業時間、票價、交通管制與一人泊條件請於出發前向官方再次確認。
+</p>
+
+<script>
+//--DATA--
+
+/* ── 分類圖示（取不到照片時的後備） ── */
+const ICON={
+ "湖泊":'<path d="M8 40c8-6 14 4 22-2s16 2 22-4"/><path d="M8 50c8-6 14 4 22-2s16 2 22-4"/><circle cx="46" cy="18" r="7"/>',
+ "湖泊・森林":'<path d="M6 46c8-6 16 4 24-2s18 2 26-4"/><path d="M20 40l8-16 8 16z"/><path d="M38 40l7-13 7 13z"/>',
+ "溪流・森林":'<path d="M14 8v14M14 22l-6 6M14 22l6 6"/><path d="M6 44c8-5 14 3 22-2s16 3 24-3"/><path d="M6 54c8-5 14 3 22-2s16 3 24-3"/>',
+ "海岸":'<path d="M4 40h56"/><path d="M4 50c8-5 14 3 22-2s16 3 26-3"/><path d="M18 40l10-16 10 16z"/>',
+ "展望":'<path d="M32 10v44"/><path d="M32 14l18 7-18 7z"/><path d="M20 54h24"/>',
+ "高山":'<path d="M6 48l16-28 10 17 6-9 20 20z"/><path d="M18 34h10"/>',
+ "溫泉":'<path d="M12 44h40v6a10 10 0 01-10 10H22a10 10 0 01-10-10z"/><path d="M24 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "溫泉・住宿":'<path d="M12 44h40v6a10 10 0 01-10 10H22a10 10 0 01-10-10z"/><path d="M24 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "溫泉・海岸":'<path d="M8 46c8-5 14 3 22-2s18 3 26-3"/><path d="M22 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "古蹟":'<path d="M10 26L32 12l22 14"/><path d="M14 26v26M50 26v26M10 52h44"/><path d="M26 52V38h12v14"/>',
+ "世界遺產":'<path d="M10 26L32 12l22 14"/><path d="M14 26v26M50 26v26M10 52h44"/><path d="M26 52V38h12v14"/>',
+ "庭園":'<path d="M6 46c10-8 20 2 30-4s16 0 22-4"/><circle cx="20" cy="24" r="8"/><path d="M20 32v14"/><path d="M44 20v26"/>',
+ "町並":'<path d="M8 52V28l10-8 10 8v24"/><path d="M32 52V34l10-7 10 7v18"/><path d="M8 52h48"/>',
+ "城跡":'<path d="M10 52V22h6v-6h6v6h8v-6h6v6h6v-6h6v6h6v30z"/><path d="M6 52h52"/>',
+ "城跡・庭園":'<path d="M10 52V22h6v-6h6v6h8v-6h6v6h6v-6h6v6h6v30z"/><path d="M6 52h52"/>',
+ "交通":'<path d="M12 40h40v10H12z"/><circle cx="20" cy="52" r="4"/><circle cx="44" cy="52" r="4"/><path d="M16 40l6-14h20l6 14"/>'
+};
+const fallbackIcon=t=>ICON[t]||ICON["展望"];
+
+const listEl=document.getElementById('list');
+const chipsEl=document.getElementById('chips');
+const countEl=document.getElementById('count');
+const qEl=document.getElementById('q');
+let filterDay='all', query='';
+
+/* ── 建立日期篩選 chips ── */
+const days=[...new Set(SPOTS.map(s=>s.day))].sort((a,b)=>a-b);
+const mkChip=(v,label,title)=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.dataset.day=v; b.textContent=label;
+  b.setAttribute('aria-pressed', v===filterDay); if(title) b.title=title;
+  b.addEventListener('click',()=>{filterDay=v;render();});
+  return b;
+};
+chipsEl.appendChild(mkChip('all','全部'));
+days.forEach(d=>chipsEl.appendChild(mkChip(String(d),DAYS[d].label,DAYS[d].date+'　'+DAYS[d].route)));
+
+qEl.addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render();});
+
+/* ── 渲染 ── */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function cardHTML(s){
+  const gmap=`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+  const amap=`https://maps.apple.com/?ll=${s.lat},${s.lng}&q=${encodeURIComponent(s.name)}`;
+  const sv=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${s.lat},${s.lng}`;
+  const rows=(s.fields||[]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${v}</dd>`).join('');
+  const tip=s.tip?`<p class="note"><span class="tag">NOTE</span>${s.tip}</p>`:'';
+  const pho=s.photo?`<p class="note cam"><span class="tag">PHOTO</span>${s.photo}</p>`:'';
+  return `
+  <article class="spot" id="sp-${s.id}" data-id="${s.id}" data-day="${s.day}">
+    <div class="spot-top">
+      <figure class="figure" data-wiki='${esc(JSON.stringify(s.wiki||[]))}'>
+        <div class="ph"><svg viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">${fallbackIcon(s.type)}</svg></div>
+      </figure>
+      <div class="head">
+        <div class="ln1"><h3>${esc(s.name)}</h3><span class="jp">${esc(s.jp)}　${esc(s.romaji)}</span></div>
+        <div class="meta">
+          <span class="tg t">${esc(s.type)}</span>
+          <span class="tg s">停留 ${esc(s.stay)}</span>
+          <span class="tg">${DAYS[s.day].label} · ${esc(s.time)}</span>
+        </div>
+        <p class="desc">${s.desc}</p>
+      </div>
+    </div>
+    <div class="body hide" id="bd-${s.id}">
+      <dl class="f">${rows}</dl>
+      ${tip}${pho}
+    </div>
+    <div class="acts bar">
+      <button class="btn more" aria-expanded="false" aria-controls="bd-${s.id}">展開詳情</button>
+      <span class="coord">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span>
+      <a class="btn" href="${gmap}" target="_blank" rel="noopener">Google 地圖</a>
+      <a class="btn" href="${amap}" target="_blank" rel="noopener">Apple 地圖</a>
+      <a class="btn" href="${sv}" target="_blank" rel="noopener">街景</a>
+    </div>
+  </article>`;
+}
+
+function render(){
+  [...chipsEl.children].forEach(c=>c.setAttribute('aria-pressed',c.dataset.day===filterDay));
+  const shown=SPOTS.slice().sort((a,b)=>a.day-b.day||a.time.localeCompare(b.time)).filter(s=>{
+    if(filterDay!=='all' && String(s.day)!==filterDay) return false;
+    if(!query) return true;
+    const hay=(s.name+s.jp+s.romaji+s.type+s.desc+(s.keys||'')+(s.tip||'')+(s.photo||'')).toLowerCase();
+    return hay.includes(query);
+  });
+  countEl.textContent=`${shown.length} / ${SPOTS.length} 個景點`;
+  if(!shown.length){
+    listEl.innerHTML=`<div class="empty">沒有符合的景點。試試清空搜尋或改選其他日期。</div>`;
+  }else{
+    let html='',cur=null;
+    shown.forEach(s=>{
+      if(s.day!==cur){cur=s.day;
+        html+=`<div class="dayhead"><span class="n">${DAYS[cur].label}</span>
+          <span class="r">${DAYS[cur].route}</span>
+          <span class="d">${DAYS[cur].date}</span><span class="line"></span></div>`;}
+      html+=cardHTML(s);
+    });
+    listEl.innerHTML=html;
+  }
+  wire(); loadPhotos();
+  const ids=new Set(shown.map(s=>s.id));
+  document.querySelectorAll('.m-pin').forEach(p=>p.classList.toggle('dim',!ids.has(p.dataset.id)));
+}
+
+/* ── 互動 ── */
+function wire(){
+  listEl.querySelectorAll('.btn.more').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const card=b.closest('.spot');
+      const open=card.querySelector('.body').classList.toggle('hide')===false;
+      b.setAttribute('aria-expanded',open);
+      b.textContent=open?'收合詳情':'展開詳情';
+    });
+  });
+  listEl.querySelectorAll('.spot').forEach(c=>{
+    c.addEventListener('mouseenter',()=>markPin(c.dataset.id,true));
+    c.addEventListener('mouseleave',()=>markPin(c.dataset.id,false));
+  });
+}
+function markPin(id,on){
+  const p=document.querySelector(`.m-pin[data-id="${id}"]`);
+  if(p) p.classList.toggle('on',on);
+}
+function goTo(id){
+  const card=document.getElementById('sp-'+id);
+  if(!card){ // 該景點被篩掉時先解除篩選
+    filterDay='all'; query=''; qEl.value=''; render();
+    requestAnimationFrame(()=>goTo(id)); return;
+  }
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.spot.hl').forEach(x=>x.classList.remove('hl'));
+  card.classList.add('hl');
+  setTimeout(()=>card.classList.remove('hl'),2600);
+}
+document.querySelectorAll('.m-pin').forEach(p=>{
+  p.addEventListener('click',()=>goTo(p.dataset.id));
+  p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goTo(p.dataset.id);}});
+});
+
+/* ── 照片：向 Wikipedia 取代表圖（雙端點，適用 file:// 的 null origin） ── */
+const photoCache={};
+async function viaRest(title){
+  const u=`https://ja.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+  const r=await fetch(u); if(!r.ok) throw 0;
+  const j=await r.json();
+  const t=j.thumbnail&&j.thumbnail.source; if(!t) throw 0;
+  // 不可自行改寫寬度：Wikimedia 只供應 API 實際產生的那個尺寸，
+  // 換成 /900px- 會拿到 400（縮圖服務不再即時產生任意寬度）
+  return {src:t,
+          page:(j.content_urls&&j.content_urls.desktop.page)||u, title:j.title};
+}
+async function viaAction(title){
+  const u=`https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*`
+        +`&prop=pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=900`
+        +`&redirects=1&titles=${encodeURIComponent(title)}`;
+  const r=await fetch(u); if(!r.ok) throw 0;
+  const j=await r.json();
+  const pages=j.query&&j.query.pages||{};
+  for(const k in pages){
+    const pg=pages[k];
+    if(pg.thumbnail&&pg.thumbnail.source)
+      return {src:pg.thumbnail.source,page:pg.fullurl||('https://ja.wikipedia.org/wiki/'+encodeURIComponent(title)),title:pg.title};
+  }
+  throw 0;
+}
+async function fetchWiki(title){
+  if(title in photoCache) return photoCache[title];
+  let out=null;
+  // Action API 先試：它能用 pithumbsize 指定尺寸，拿到真正的高解析度縮圖。
+  // REST 當後備（只給固定小圖，但在 file:// 的 null origin 下比較可靠）
+  try{ out=await viaAction(title); }
+  catch(e){ try{ out=await viaRest(title); }catch(e2){ out=null; } }
+  photoCache[title]=out; return out;
+}
+function attach(fig,p){
+  const img=new Image();
+  // crossOrigin 必須在 src 之前設定。Wikimedia 圖床回 Access-Control-Allow-Origin: *，
+  // 走 CORS 才會拿到「可以寫進 Cache」的回應；不設就是 opaque，Service Worker
+  // 的 cache.put() 存不進去（離線照片會整批失效，而且首次請求會卡住不回應）
+  img.crossOrigin='anonymous';
+  // 不可加 loading='lazy'：這個 img 還沒進 DOM，lazy 會讓瀏覽器永遠不開始載入，
+  // 而插入 DOM 又要等 onload——互相卡死，22 張照片會全部不出現。
+  // 何況離線快取本來就要在第一次連網時把圖全抓下來，本來就不該延後。
+  img.alt=p.title; img.decoding='async'; img.referrerPolicy='no-referrer';
+  img.onload=()=>{
+    fig.querySelector('.ph')&&fig.querySelector('.ph').remove();
+    fig.prepend(img);
+    requestAnimationFrame(()=>img.classList.add('in'));
+    const cap=document.createElement('figcaption');
+    cap.innerHTML=`照片：<a href="${p.page}" target="_blank" rel="noopener">Wikipedia／${esc(p.title)}</a>`;
+    fig.appendChild(cap);
+  };
+  img.src=p.src;
+}
+async function loadPhotos(){
+  let ok=0;
+  const figs=[...document.querySelectorAll('.figure')];
+  await Promise.all(figs.map(async fig=>{
+    let cands=[]; try{ cands=JSON.parse(fig.dataset.wiki); }catch(e){}
+    for(const t of cands){
+      const p=await fetchWiki(t);
+      if(p){ attach(fig,p); ok++; return; }
+    }
+  }));
+  const rb=document.getElementById('reload');
+  if(rb) rb.hidden = ok>0 || figs.length===0;
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='reload'){ for(const k in photoCache) delete photoCache[k]; loadPhotos(); }
+});
+
+render();
+</script>
+</body>
+</html>

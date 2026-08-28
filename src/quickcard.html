@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>東北大環線 速查卡</title>
+<style>
+:root{
+  --ink:#12232E;--ink2:#3C5566;--ink3:#7A8D97;--card:#fff;
+  --exp:#0B6E4F;--sign:#114E8C;--aoike:#1C7FC4;--ochre:#B87C1E;
+  --rule:#C9D2CE;--rule2:#E3E9E6;--warn:#A33A2A;
+  --mono:"Noto Sans Mono CJK TC","DejaVu Sans Mono",ui-monospace,monospace;
+  --sans:"Noto Sans CJK TC","PingFang TC","Hiragino Sans",sans-serif;
+  --serif:"Noto Serif CJK TC","Songti TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:var(--sans);color:var(--ink);background:#fff;
+  font-size:8.6pt;line-height:1.42;letter-spacing:.01em;padding:0;zoom:1.2}
+.sheet{width:190mm;margin:0 auto}
+
+.hd{background:var(--ink);color:#fff;padding:7px 12px;display:flex;
+  align-items:center;gap:14px;flex-wrap:wrap;border-radius:2px}
+.hd h1{font-family:var(--serif);font-size:15pt;letter-spacing:.06em;font-weight:700}
+.hd .sub{font-family:var(--mono);font-size:7.4pt;color:#8FB6CE;letter-spacing:.1em}
+.hd .fl{margin-left:auto;font-family:var(--mono);font-size:7.6pt;text-align:right;line-height:1.5}
+.hd .fl b{color:#fff}.hd .fl span{color:#8FB6CE}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+.box{border:1px solid var(--rule);border-radius:2px;overflow:hidden;break-inside:avoid}
+.box>h2{background:#E7ECEA;font-family:var(--mono);font-size:7pt;letter-spacing:.16em;
+  color:var(--ink2);padding:4px 9px;border-bottom:1px solid var(--rule)}
+.box .in{padding:7px 9px}
+
+table{width:100%;border-collapse:collapse;font-size:8.2pt}
+th{background:#EEF2F0;text-align:left;padding:3.5px 7px;font-size:7pt;
+  letter-spacing:.08em;color:var(--ink2);border-bottom:1px solid var(--rule)}
+td{padding:4px 7px;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.4}
+tr:last-child td{border-bottom:none}
+td.c,th.c{font-family:var(--mono);white-space:nowrap}
+td.r,th.r{font-family:var(--mono);white-space:nowrap;text-align:right}
+tbody tr:nth-child(even){background:#FAFBFB}
+
+/* 主表 */
+.days td{padding:5px 7px}
+.days .d{font-family:var(--mono);font-weight:700;color:#fff;background:var(--ink);
+  padding:1px 5px;border-radius:2px;font-size:7.4pt}
+.days .go{font-family:var(--mono);font-size:9.6pt;font-weight:700;color:var(--ink)}
+.days .rt{font-weight:600;font-size:8.6pt}
+.days .key{color:var(--ink2);font-size:7.8pt;line-height:1.45}
+.days .key b{color:var(--warn)}
+.days .hotel{font-size:7.6pt;color:var(--ink2)}
+
+.warn{border-left:3px solid var(--warn);background:#FCF3F1;padding:5px 8px;
+  margin-bottom:5px;font-size:8pt;line-height:1.45;border-radius:0 2px 2px 0}
+.warn:last-child{margin-bottom:0}
+.warn b{color:var(--warn)}
+.tel{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:8.2pt}
+.tel .n{font-family:var(--mono);font-weight:700;letter-spacing:.02em}
+.tel .lbl{color:var(--ink2)}
+.tel .hr{grid-column:1/-1;height:1px;background:var(--rule2);margin:2px 0}
+
+ul.chk{list-style:none;font-size:8.1pt;line-height:1.55}
+ul.chk li{padding-left:15px;position:relative;margin-bottom:2.5px}
+ul.chk li::before{content:"";position:absolute;left:0;top:4px;width:8px;height:8px;
+  border:1.4px solid var(--ink3);border-radius:1px}
+ul.chk li b{color:var(--ink)}
+
+.ft{margin-top:6px;font-family:var(--mono);font-size:6.6pt;color:var(--ink3);
+  letter-spacing:.06em;display:flex;justify-content:space-between}
+@page{size:A4;margin:8mm}
+</style></head>
+<body><div class="sheet">
+
+<div class="hd">
+  <h1>東北大環線・速查</h1>
+  <span class="sub">2026.09.22–27　仙台進出　1,070 km</span>
+  <div class="fl">
+    <div><b>JX862</b> <span>9/22</span> TPE 11:35 → SDJ 16:00</div>
+    <div><b>JX863</b> <span>9/27</span> SDJ 17:20 → TPE 20:10</div>
+  </div>
+</div>
+
+<div class="box" style="margin-top:7px">
+  <h2>DAILY　每日出發時間與關鍵節點</h2>
+  <table class="days">
+    <thead><tr>
+      <th class="c">日</th><th class="c">出發</th><th>路線</th>
+      <th class="r">km／時</th><th>今日不能錯過的時間點</th><th>住宿</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td class="c"><span class="d">D1</span><br><span style="font-size:6.8pt;color:#7A8D97">9/22 二</span></td>
+        <td class="c go">17:00</td>
+        <td class="rt">仙台空港 → 松島</td>
+        <td class="r">40<br>0:50</td>
+        <td class="key">16:00 落地 → 取車留 <b>60 分</b>（保險・ETC・<b>TEP 須當場申請</b>）<br>松島餐廳多 20:00 打烊</td>
+        <td class="hotel">松島</td>
+      </tr>
+      <tr>
+        <td class="c"><span class="d">D2</span><br><span style="font-size:6.8pt;color:#7A8D97">9/23 三</span></td>
+        <td class="c go">07:00</td>
+        <td class="rt">松島 → 平泉 → 田澤湖</td>
+        <td class="r">220<br>3:20</td>
+        <td class="key">07:15 西行戻し松（晨光）<br><b>08:30 遊覽船第一班</b>・現金或 PayPay・無專用停車場<br>17:30 前抵田澤湖辰子像</td>
+        <td class="hotel">休暇村<br>乳頭温泉郷</td>
+      </tr>
+      <tr>
+        <td class="c"><span class="d">D3</span><br><span style="font-size:6.8pt;color:#7A8D97">9/24 四</span></td>
+        <td class="c go">08:00</td>
+        <td class="rt">田澤湖 → 角館 → 十和田湖</td>
+        <td class="r">190<br>3:25</td>
+        <td class="key">角館 <b>09:00 前</b>人最少<br>12:00 出發前<b>務必加滿油</b>（鹿角–十和田站點稀疏、18:00 關）<br>16:50 瞰湖台</td>
+        <td class="hotel">十和田<br>ホテル</td>
+      </tr>
+      <tr>
+        <td class="c"><span class="d">D4</span><br><span style="font-size:6.8pt;color:#7A8D97">9/25 五</span></td>
+        <td class="c go">07:00</td>
+        <td class="rt">奧入瀨 → 八甲田 → 弘前</td>
+        <td class="r">90<br>2:25</td>
+        <td class="key"><b>08:00 前停石ヶ戸</b>（車位少）<br>八甲田纜車 <b>中午前上山</b>・09:00–16:20・山頂低 8°C<br>酸ヶ湯純泡湯至 17:30</td>
+        <td class="hotel">ドーミーイン<br>弘前</td>
+      </tr>
+      <tr>
+        <td class="c"><span class="d">D5</span><br><span style="font-size:6.8pt;color:#7A8D97">9/26 六</span></td>
+        <td class="c go">08:00</td>
+        <td class="rt">弘前 → 十二湖 → 秋田</td>
+        <td class="r">230<br>4:00</td>
+        <td class="key">青池 <b>10:00–12:00 最藍・CPL 必戴</b>・導航設「森の物産館キョロロ」<br><b>不老ふ死受付至 16:00</b>／日落 17:20<br>18:00 出發・夜間沿海段</td>
+        <td class="hotel">ドーミーイン<br>秋田</td>
+      </tr>
+      <tr>
+        <td class="c"><span class="d">D6</span><br><span style="font-size:6.8pt;color:#7A8D97">9/27 日</span></td>
+        <td class="c go">09:00</td>
+        <td class="rt">秋田 → 増田町 → 仙台空港</td>
+        <td class="r">300<br>4:10</td>
+        <td class="key">増田町 10:30（<b>週三公休</b>，09:00–16:00）<br><b>15:20 前完成還車</b>・加滿油留收據<br>保守版：10:30 直接南下，280 km／3:30</td>
+        <td class="hotel">—</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="grid">
+  <div class="box">
+    <h2>RED FLAGS　三個最容易出事的地方</h2>
+    <div class="in">
+      <div class="warn"><b>① 加油　</b>白神山地・十和田湖・鹿角一帶站點稀疏且多在 18:00 關門。<b>油表過半就補</b>，別等亮燈。</div>
+      <div class="warn"><b>② 夜間駕駛　</b>只有 D5 傍晚 R101 深浦→能代這一段。彎多、無路燈、17:30 天黑後<b>鹿與狸竄出頻繁</b>。放慢，遠光燈交替使用。</div>
+      <div class="warn"><b>③ 一人泊　</b>訂房搜尋<b>務必勾「1 名」</b>。很多旅館 2 名有房、1 名直接不顯示。9/25–26 卡中秋連假。</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>NUMBERS　電話與代碼</h2>
+    <div class="in">
+      <div class="tel">
+        <span class="lbl">警察</span><span class="n">110</span>
+        <span class="lbl">消防・救護車</span><span class="n">119</span>
+        <span class="lbl">道路救援 JAF</span><span class="n">#8139</span>
+        <span class="lbl">高速公路道路情報</span><span class="n">#8011</span>
+        <span class="hr"></span>
+        <span class="lbl">日本觀光廳 訪日旅客熱線（24h・中文）</span><span class="n">050-3816-2787</span>
+        <span class="lbl">駐日代表處（東京）總機</span><span class="n">+81-3-3280-7811</span>
+        <span class="lbl">急難救助免付費（日本撥）</span><span class="n">001-010-800-0885-0885</span>
+        <span class="lbl">外交部緊急聯絡中心</span><span class="n">+886-800-085-095</span>
+        <span class="lbl">駐日代表處 急難救助行動（行前查證填入）</span><span class="n">＿＿＿＿＿＿＿＿</span>
+        <span class="hr"></span>
+        <span class="lbl">租車公司營業所</span><span class="n">＿＿＿＿＿＿＿＿</span>
+        <span class="lbl">車牌號碼</span><span class="n">＿＿＿＿＿＿＿＿</span>
+        <span class="lbl">保險證號</span><span class="n">＿＿＿＿＿＿＿＿</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>DRIVING　自駕速記</h2>
+    <div class="in">
+      <ul class="chk">
+        <li><b>靠左行駛</b>・方向燈在右桿・雨刷在左</li>
+        <li>紅燈<b>不可右轉</b>；「止まれ」須完全停止</li>
+        <li>ETC 卡插好，過閘口降到 20 km/h</li>
+        <li>導航輸入<b>電話號碼或 MAPCODE</b> 比打日文地名快</li>
+        <li>高速最左為行車道，超車後回原車道</li>
+        <li>國際駕照＋<b>台灣駕照正本</b>兩者都要帶在身上</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>PHOTO　濾鏡與時段（RX1R III）</h2>
+    <div class="in">
+      <ul class="chk">
+        <li><b>CPL</b>：D5 青池（沒戴＝只拍到天空反射）、D2 毛越寺池面</li>
+        <li><b>ND＋腳架</b>：D4 奧入瀨 07:00–09:00 拍流水</li>
+        <li><b>漸層 ND</b>：D5 深浦日落 17:20，日落後 20 分藍調別收機</li>
+        <li>35mm 不夠遠時用 <b>50／70mm 裁切模式</b></li>
+        <li>49mm 轉接環<b>台灣先買好</b>，東北買不到</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="ft">
+  <span>東北大環線 速查卡　2026.09.22–27</span>
+  <span>營業時間・票價・管制期間出發前再確認</span>
+</div>
+
+</div></body></html>

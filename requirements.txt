@@ -1,0 +1,11 @@
+# 產生 PDF 與截圖（需另外執行 playwright install chromium）
+playwright>=1.40
+# 讀取 PDF 頁數／把 PDF 轉圖檢查版面
+pypdf>=4.0
+pypdfium2>=4.0
+# 產生 App 圖示
+pillow>=10.0
+# 離線海岸線資料（GSHHS）——地圖用
+basemap>=1.4
+basemap-data
+basemap-data-hires

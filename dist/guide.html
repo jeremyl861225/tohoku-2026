@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>東北大環線 互動式景點指南｜2026.09.22–27</title>
+<style>
+:root{
+  --ink:#12232E; --ink2:#415866; --ink3:#7A8D97;
+  --paper:#EFF2F1; --card:#FFFFFF;
+  --exp:#0B6E4F; --sign:#114E8C; --aoike:#1C7FC4; --ochre:#B87C1E;
+  --rule:#D3DAD7; --rule2:#E6EBE9; --warn:#A33A2A;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  --sans:"PingFang TC","Hiragino Sans","Noto Sans CJK TC","Noto Sans TC",-apple-system,"Helvetica Neue",sans-serif;
+  --serif:"Songti TC","Hiragino Mincho ProN","Noto Serif CJK TC","Noto Serif TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);
+  font-size:14px;line-height:1.75;letter-spacing:.01em}
+a{color:var(--sign)}
+
+/* ── 頂欄 ── */
+.top{position:sticky;top:0;z-index:40;background:var(--ink);color:#fff;
+  border-bottom:1px solid #0A1720}
+.top-in{max-width:1240px;margin:0 auto;padding:14px 20px 12px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-family:var(--serif);font-size:22px;letter-spacing:.06em;font-weight:700}
+.brand .sub{font-family:var(--mono);font-size:11px;color:#8FB6CE;letter-spacing:.12em}
+.controls{display:flex;gap:10px;align-items:center;margin-top:11px;flex-wrap:wrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;
+  background:transparent;color:#B9CBD6;border:1px solid rgba(255,255,255,.22);
+  padding:5px 11px;border-radius:2px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:rgba(255,255,255,.5);color:#fff}
+.chip[aria-pressed="true"]{background:#fff;color:var(--ink);border-color:#fff;font-weight:600}
+.chip:focus-visible{outline:2px solid #8FB6CE;outline-offset:2px}
+.search{margin-left:auto;position:relative}
+.search input{font-family:var(--sans);font-size:13px;color:#fff;
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);
+  border-radius:2px;padding:6px 11px 6px 30px;width:210px;transition:.15s}
+.search input::placeholder{color:#7D9DB0}
+.search input:focus{outline:none;border-color:#8FB6CE;background:rgba(255,255,255,.15)}
+.search svg{position:absolute;left:9px;top:8px;width:14px;height:14px;stroke:#7D9DB0;
+  fill:none;stroke-width:2}
+.count{font-family:var(--mono);font-size:11px;color:#8FB6CE;white-space:nowrap}
+
+/* ── 版面 ── */
+.wrap{max-width:1240px;margin:0 auto;padding:20px;display:flex;gap:22px;align-items:flex-start}
+.mapside{flex:0 0 396px;position:sticky;top:104px}
+.mapcard{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:14px}
+.mapcard h2{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink3);
+  text-transform:uppercase;margin-bottom:10px}
+.maphint{font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.6;
+  border-top:1px solid var(--rule2);padding-top:9px}
+.list{flex:1 1 auto;min-width:0}
+
+/* ── 地圖 ── */
+svg.map{width:100%;height:auto;display:block;border:1px solid var(--rule2);border-radius:2px}
+.m-sea{fill:#DEE7EB}
+.m-land{fill:#F8FAF9;stroke:#B6C4BF;stroke-width:.7;stroke-linejoin:round}
+.m-lake{fill:#CFDEE6;stroke:#A9BFC9;stroke-width:.6}
+.m-route-case{fill:none;stroke:#fff;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;opacity:.95}
+.m-route{fill:none;stroke:var(--aoike);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.m-back{fill:none;stroke:#7FA6BE;stroke-width:2.2;stroke-dasharray:5 4;stroke-linecap:round}
+.m-dot{fill:var(--aoike);stroke:#fff;stroke-width:1.6}
+.m-dot-stay{fill:var(--ink);stroke:#fff;stroke-width:2}
+.m-dot-term{fill:var(--ochre);stroke:#fff;stroke-width:2}
+.m-dot-term-in{fill:#fff}
+.m-badge{fill:#fff;font-size:9px;font-weight:700;text-anchor:middle;font-family:var(--mono)}
+.m-lbl{fill:var(--ink2);font-size:10.5px;font-family:var(--sans)}
+.m-lbl.strong{fill:var(--ink);font-weight:700}
+.m-pref{fill:#B2C1C4;font-size:11px;letter-spacing:.3em;text-anchor:middle;font-family:var(--sans)}
+.m-scale line{stroke:var(--ink3);stroke-width:1}
+.m-scale text{fill:var(--ink3);font-size:8.5px;text-anchor:middle;font-family:var(--mono)}
+.m-north path{fill:var(--ink3)}
+.m-north text{fill:var(--ink3);font-size:9px;text-anchor:middle;font-family:var(--mono)}
+.m-hit{fill:transparent;cursor:pointer}
+.m-pin{cursor:pointer}
+.m-pin:focus{outline:none}
+.m-pin:focus-visible .m-hit{stroke:var(--ochre);stroke-width:2;fill:rgba(184,124,30,.12)}
+.m-pin:hover .m-lbl,.m-pin.on .m-lbl{fill:var(--ochre);font-weight:700}
+.m-pin:hover .m-dot,.m-pin.on .m-dot{fill:var(--ochre);r:6}
+.m-pin.on .m-dot-stay{fill:var(--ochre)}
+.m-pin.dim{opacity:.28}
+
+/* ── 日期分隔 ── */
+.dayhead{display:flex;align-items:center;gap:14px;margin:26px 0 12px;flex-wrap:wrap}
+.dayhead:first-child{margin-top:0}
+.dayhead .n{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+  background:var(--ink);color:#fff;padding:4px 10px;border-radius:2px}
+.dayhead .r{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:.04em}
+.dayhead .d{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.dayhead .line{flex:1 1 auto;height:1px;background:var(--rule);min-width:20px}
+
+/* ── 卡片 ── */
+.spot{background:var(--card);border:1px solid var(--rule);border-radius:3px;
+  margin-bottom:12px;overflow:hidden;scroll-margin-top:120px;transition:box-shadow .2s,border-color .2s}
+.spot.hl{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(184,124,30,.15)}
+.spot-top{display:flex;gap:0;align-items:stretch}
+.figure{flex:0 0 232px;position:relative;background:#E3E9E7;min-height:172px;overflow:hidden}
+.figure img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .45s}
+.figure img.in{opacity:1}
+.figure .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#E7EDEA,#D9E3E4)}
+.figure .ph svg{width:64px;height:64px;stroke:#A8BAC0;fill:none;stroke-width:1.3}
+.figure figcaption{position:absolute;left:0;right:0;bottom:0;
+  font-size:9.5px;color:#fff;background:linear-gradient(transparent,rgba(18,35,46,.82));
+  padding:16px 8px 5px;letter-spacing:.02em;line-height:1.4}
+.figure figcaption a{color:#CFE2EF;text-decoration:none}
+.figure figcaption a:hover{text-decoration:underline}
+.head{flex:1 1 auto;padding:15px 18px;min-width:0}
+.head .ln1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.head h3{font-size:17px;font-weight:700;letter-spacing:.03em}
+.head .jp{font-size:12px;color:var(--ink3)}
+.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.tg{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:2px 7px;
+  border:1px solid var(--rule);border-radius:2px;color:var(--ink2);background:#F6F8F7}
+.tg.t{color:var(--sign);border-color:#CFDDEE;background:#EEF3F9}
+.tg.s{color:var(--exp);border-color:#CFE3D8;background:#F0F5F2}
+.desc{font-size:13px;color:var(--ink2);line-height:1.72;margin-top:9px}
+.body.hide{display:none}
+dl.f{display:grid;grid-template-columns:max-content 1fr;gap:0 14px;margin-top:12px}
+dl.f dt{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;
+  padding:6px 0;white-space:nowrap}
+dl.f dd{font-size:12.5px;color:var(--ink2);padding:6px 0;line-height:1.6}
+dl.f dt+dd{border-bottom:1px solid var(--rule2)}
+dl.f dt{border-bottom:1px solid var(--rule2)}
+dl.f dt:last-of-type,dl.f dd:last-of-type{border-bottom:none}
+.note{margin-top:11px;font-size:12.5px;line-height:1.65;padding:8px 11px;
+  border-left:3px solid var(--aoike);background:#F4F9FD;border-radius:0 2px 2px 0;color:var(--ink2)}
+.note.cam{border-left-color:var(--ochre);background:#FBF7EE}
+.note b{color:var(--ink)}
+.note .tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink3);margin-right:7px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.acts.bar{padding:11px 18px;border-top:1px solid var(--rule2);background:#FCFDFD}
+.body{padding:14px 18px 4px;border-top:1px solid var(--rule2)}
+.btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-decoration:none;
+  color:var(--ink2);background:#F6F8F7;border:1px solid var(--rule);border-radius:2px;
+  padding:5px 11px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--ink3);color:var(--ink);background:#fff}
+.btn:focus-visible{outline:2px solid var(--aoike);outline-offset:2px}
+.btn.more{margin-right:auto}
+.coord{font-family:var(--mono);font-size:10.5px;color:var(--ink3);align-self:center}
+
+.empty{background:var(--card);border:1px dashed var(--rule);border-radius:3px;
+  padding:34px;text-align:center;color:var(--ink3);font-size:13px}
+.foot{max-width:1240px;margin:0 auto;padding:8px 20px 44px;
+  font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.06em;line-height:1.8}
+
+@media (max-width:980px){
+  .wrap{flex-direction:column;padding:14px}
+  .mapside{position:static;flex:1 1 auto;width:100%;align-self:stretch}
+  .mapcard{max-width:430px;margin:0 auto}
+  .list{width:100%}
+}
+@media (max-width:640px){
+  .top-in{padding:12px 14px 10px}
+  .brand h1{font-size:19px}
+  .search{margin-left:0;width:100%}
+  .search input{width:100%}
+  .spot-top{flex-direction:column}
+  .figure{flex:1 1 auto;width:100%;height:186px;min-height:0}
+  .head{padding:13px 15px}
+  .body{padding:12px 15px 2px}
+  .acts.bar{padding:10px 15px}
+  dl.f{grid-template-columns:1fr;gap:0}
+  dl.f dt{padding:7px 0 0;border-bottom:none}
+  dl.f dt+dd{padding-top:1px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;scroll-behavior:auto!important}
+}
+@media print{
+  .top{position:static}.mapside{position:static}
+  .body.hide{display:block}
+  .spot{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>東北大環線・景點指南</h1>
+      <span class="sub">2026.09.22–27　仙台進出　全程自駕</span>
+      <span class="sub" style="color:#6F93A8">JX862 抵 16:00　／　JX863 起飛 17:20</span>
+    </div>
+    <div class="controls">
+      <div class="chips" id="chips" role="group" aria-label="依日期篩選"></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="搜尋景點、關鍵字…" aria-label="搜尋景點">
+      </div>
+      <span class="count" id="count"></span>
+      <button class="chip" id="reload" hidden title="重新向 Wikipedia 取得照片">重新載入照片</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="mapside">
+    <div class="mapcard">
+      <h2>Route Map　點擊標記可跳至該景點</h2>
+      <svg class="map" viewBox="0 0 396 583" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="東北大環線路線圖">
+<rect x="0" y="0" width="396" height="583" class="m-sea"/>
+<g class="m-land">
+<path d="M-52.8,644.4L-51.6,641.0L-50.1,638.2L-49.9,636.0L-49.0,636.0L-49.4,634.6L-48.3,631.8L-48.1,628.3L-48.5,627.5L-46.3,621.0L-44.7,617.8L-43.8,614.6L-40.2,610.0L-34.7,605.0L-21.3,596.3L-11.7,588.9L-11.8,590.2L-11.2,590.3L-10.6,587.7L-8.4,587.6L-3.5,585.9L-3.0,586.3L-2.8,588.1L-2.0,588.2L-2.4,585.9L2.9,584.4L9.0,581.5L9.4,581.9L10.1,581.7L11.0,580.3L11.9,580.2L12.0,579.2L14.0,578.3L16.6,575.9L17.2,575.7L17.0,576.7L17.7,577.1L17.4,575.5L26.2,566.4L27.7,564.0L28.8,563.6L29.6,563.9L28.2,563.2L33.4,555.2L34.4,555.1L34.4,554.6L36.3,555.1L36.1,554.6L34.5,554.4L34.0,554.8L33.9,554.3L37.1,548.7L37.2,547.4L36.6,547.8L37.0,545.1L39.2,541.1L39.5,539.5L40.3,539.7L39.9,539.2L38.8,539.2L38.2,538.5L39.3,533.6L39.3,531.2L38.9,530.2L39.5,528.5L39.2,527.1L39.8,523.3L39.5,519.1L40.6,516.5L40.1,514.5L42.1,509.0L43.3,507.6L44.4,504.5L45.8,502.8L46.7,499.8L47.1,499.5L47.1,498.3L47.7,498.2L47.5,497.6L48.3,496.7L48.8,494.8L49.8,494.0L52.6,488.8L52.7,487.1L51.3,485.8L52.5,485.8L52.4,484.6L53.4,483.7L54.7,479.5L55.5,478.8L56.2,476.7L57.1,475.7L58.7,472.2L58.7,470.9L62.2,465.0L63.0,463.9L63.8,464.5L65.7,463.0L66.4,461.3L67.2,461.1L68.6,458.7L69.9,458.9L71.4,457.7L72.3,456.7L72.8,455.0L73.6,454.3L73.7,453.1L74.9,452.5L75.7,451.3L76.9,451.2L77.2,450.1L79.1,449.0L83.9,437.1L87.4,438.0L84.4,437.0L83.9,436.1L85.2,432.4L87.0,424.1L87.8,426.2L89.8,428.7L89.9,430.1L90.4,429.5L91.1,430.1L91.5,429.9L89.6,426.5L87.3,423.8L88.2,424.1L90.0,426.4L90.3,426.0L88.1,423.7L87.4,423.7L87.3,423.1L91.5,412.3L92.2,413.9L91.6,411.6L95.1,400.7L94.7,398.7L96.0,395.0L94.8,392.2L94.9,391.2L96.7,388.8L96.5,387.0L97.0,385.8L98.2,384.7L99.5,380.7L99.6,378.2L99.1,377.1L97.7,376.6L97.8,374.8L98.4,374.5L100.6,369.5L100.2,366.8L101.3,363.5L102.7,361.9L105.3,361.9L106.6,361.0L107.5,361.0L110.8,355.1L114.2,344.9L115.7,345.3L114.7,345.0L114.5,343.8L118.0,327.1L119.4,316.3L120.6,299.1L120.2,294.0L121.7,293.2L124.0,293.1L125.9,295.4L124.4,292.8L125.0,291.1L122.7,289.7L122.9,288.9L123.4,289.1L123.5,287.4L123.2,287.0L123.0,287.6L122.1,286.5L121.3,285.1L122.1,285.9L122.2,285.4L118.4,280.8L116.5,273.2L114.2,268.5L112.4,265.7L110.8,264.9L107.9,261.4L108.3,260.1L106.4,258.2L106.4,257.5L107.4,256.6L108.2,254.8L108.8,254.7L114.7,256.3L115.1,257.3L118.4,260.1L119.3,254.5L117.5,252.3L119.5,249.7L120.8,246.9L121.8,241.7L121.4,240.5L120.9,241.0L120.8,243.4L118.3,249.4L114.5,253.2L105.3,250.3L108.5,245.9L104.9,250.1L102.5,247.8L102.2,246.6L101.9,247.7L105.2,251.3L106.1,255.5L105.6,257.8L104.3,258.8L99.9,257.1L98.6,257.1L98.0,257.7L94.1,257.8L92.4,259.5L92.0,261.3L93.0,261.6L93.0,262.0L92.0,262.1L91.4,263.0L89.6,262.8L88.0,265.0L87.1,264.4L86.7,264.9L86.0,263.5L85.3,263.1L84.7,263.1L84.4,263.9L83.5,263.4L82.2,264.9L82.2,263.7L81.4,263.7L80.2,264.7L79.6,264.4L79.4,263.6L78.3,263.2L77.3,260.8L77.6,259.9L76.9,258.6L76.9,256.2L75.0,256.3L74.5,255.6L75.0,255.3L73.6,253.3L73.9,252.7L73.1,252.6L73.3,250.7L72.7,250.0L73.6,249.2L74.9,249.4L75.2,247.7L74.6,246.9L74.2,247.1L74.5,247.6L74.0,247.2L73.5,247.7L72.2,246.3L72.5,245.6L72.9,246.1L72.8,244.6L72.0,244.3L71.7,241.0L72.5,238.9L73.4,239.5L73.4,240.3L73.9,240.3L75.9,243.3L77.1,242.8L78.1,243.8L81.5,244.3L83.7,245.8L84.2,246.9L85.5,247.4L87.8,247.1L90.2,245.9L93.5,243.8L96.4,240.8L97.3,240.3L97.3,239.7L101.6,233.6L106.1,225.5L109.0,218.5L112.7,202.4L113.0,202.1L114.0,202.5L114.5,202.0L114.3,201.6L113.0,201.8L112.9,201.4L115.3,187.6L115.4,179.2L114.1,177.5L113.5,175.5L110.0,173.8L109.3,172.7L109.3,171.5L105.3,168.9L104.9,167.5L103.9,166.5L104.0,162.9L104.8,160.1L104.6,159.3L105.0,158.7L105.4,153.9L105.0,151.3L105.2,149.0L104.0,144.4L102.8,143.9L103.2,143.1L102.8,141.1L101.3,138.8L99.4,138.9L98.8,139.5L97.2,139.1L96.1,139.5L94.9,139.2L93.8,137.1L93.8,133.8L97.8,130.7L99.3,128.2L100.5,128.8L102.6,128.9L102.6,127.6L103.7,126.6L103.6,124.1L105.0,124.3L107.5,121.5L107.9,119.0L109.1,118.4L110.3,116.7L110.1,115.7L111.2,112.8L112.0,112.2L112.2,110.9L112.9,111.1L115.3,110.1L116.6,108.2L119.4,106.9L121.1,107.5L121.7,108.3L123.7,108.9L123.9,110.0L124.9,110.8L126.9,111.5L128.1,111.4L133.0,108.3L134.8,106.3L136.3,105.6L137.2,104.3L139.4,104.0L139.8,105.1L141.9,104.9L145.3,101.0L146.9,97.7L150.9,86.2L154.1,66.7L154.5,60.5L155.7,60.2L156.5,64.6L157.6,65.9L159.4,65.9L159.9,64.5L161.4,65.1L161.2,64.5L160.4,64.5L160.3,63.8L163.3,62.5L163.6,61.9L164.3,63.2L164.2,61.6L166.0,62.8L166.7,62.4L165.0,59.9L160.5,60.2L159.9,59.6L158.1,60.0L156.9,57.7L156.1,58.0L155.3,59.8L154.5,60.2L154.8,55.1L154.3,50.6L152.9,49.5L151.4,46.7L150.0,46.3L149.5,45.4L145.7,45.6L144.7,45.1L144.9,43.3L146.0,42.1L147.1,42.8L147.3,42.4L148.2,42.5L148.7,41.8L148.8,42.4L149.7,42.8L150.0,42.4L150.9,43.5L151.9,43.7L153.1,42.7L153.0,41.1L154.0,41.2L155.0,39.7L156.5,33.4L155.7,31.6L156.3,30.6L155.7,26.4L156.0,25.0L156.7,24.8L157.4,23.7L157.0,21.0L157.9,20.6L159.8,22.8L161.8,23.2L162.0,23.8L164.6,25.4L165.8,28.2L168.5,30.2L169.3,32.6L172.6,33.6L173.2,34.6L176.0,34.5L177.1,33.9L180.7,30.5L180.8,28.8L181.4,28.2L182.8,27.7L183.3,28.3L184.6,26.4L185.4,27.3L186.3,27.3L186.6,26.9L190.0,28.6L191.6,28.8L193.7,32.0L195.5,32.9L196.4,34.0L197.2,36.7L195.7,43.8L195.6,49.7L196.3,55.3L197.4,58.1L196.8,58.6L197.4,58.9L197.7,60.4L199.3,74.7L200.8,80.1L202.6,89.5L204.5,92.6L206.2,93.7L208.3,95.8L209.7,95.7L209.6,96.4L210.4,96.6L213.0,95.7L214.6,96.1L217.4,95.3L219.7,93.1L222.4,89.2L223.6,88.9L224.3,86.8L225.4,86.0L225.6,84.7L224.9,83.4L226.4,83.2L226.9,82.0L226.4,80.6L226.5,77.3L227.2,76.6L226.4,76.2L225.2,76.5L222.9,75.0L225.7,74.3L226.1,73.8L225.5,73.1L225.8,71.9L227.3,70.3L227.3,69.8L226.3,69.3L227.4,68.7L228.3,65.9L228.0,65.1L226.9,64.6L227.0,63.8L228.2,65.0L229.7,64.7L231.2,65.1L231.9,66.7L232.8,66.7L233.8,67.9L237.6,68.0L241.1,71.5L242.8,75.7L244.5,77.9L246.8,78.7L247.3,79.7L249.0,81.1L251.6,81.1L252.7,81.7L255.4,86.6L257.2,88.4L258.9,89.0L261.5,88.9L264.5,87.0L268.3,82.3L270.9,77.9L273.2,72.5L275.3,64.6L275.9,60.1L276.3,55.7L275.9,52.5L276.6,51.1L276.8,47.5L278.4,44.6L278.8,44.6L280.2,42.7L280.9,39.4L279.2,32.8L277.4,28.4L274.5,23.9L270.3,19.0L269.0,18.4L269.0,17.7L267.7,18.1L268.8,16.7L268.1,16.6L265.1,18.0L264.8,19.8L262.0,24.0L262.1,24.5L263.1,24.4L264.9,22.1L265.0,20.6L265.3,22.0L264.3,24.5L259.5,29.2L256.9,29.6L254.4,31.3L251.6,34.8L248.2,34.3L245.4,32.3L243.3,32.6L243.2,32.0L241.6,32.0L239.2,33.6L236.9,36.4L233.0,36.1L229.8,38.1L227.6,37.6L224.7,38.6L223.4,40.0L221.2,41.2L219.2,44.4L218.7,44.0L217.7,44.3L216.7,43.4L215.4,43.8L214.7,42.5L212.9,41.1L213.7,36.6L213.1,32.4L214.9,30.2L215.7,26.4L215.1,22.4L215.8,21.7L216.6,18.9L217.1,17.9L217.4,15.4L217.9,15.2L217.4,14.2L218.4,11.4L217.6,10.4L218.6,9.2L217.9,9.1L218.5,8.3L219.5,8.0L220.3,6.0L220.8,1.9L221.3,1.6L221.2,-1.3L222.8,-5.7L222.3,-6.0L222.7,-6.6L224.0,-7.1L225.1,-9.6L226.1,-9.3L226.8,-12.2L228.1,-12.9L228.0,-14.2L228.8,-15.1L228.6,-15.7L229.5,-15.9L230.1,-16.9L230.6,-16.9L230.7,-18.0L232.0,-20.1L231.7,-21.0L232.0,-21.7L230.6,-25.4L231.8,-26.4L232.4,-29.3L233.5,-28.5L234.2,-27.1L236.3,-26.3L236.7,-25.5L237.9,-25.0L240.5,-21.2L244.5,-18.6L253.1,-18.0L256.5,-15.3L258.4,-15.2L259.4,-13.4L260.1,-13.2L260.1,-12.2L260.9,-10.9L261.8,-9.9L263.2,-9.3L264.1,-7.4L265.8,-6.1L269.1,-1.5L274.8,2.4L280.7,4.8L284.2,5.1L286.2,4.6L290.1,3.3L296.2,0.1L305.4,-9.0L305.4,-7.8L306.1,-6.7L305.1,-6.4L305.3,-4.1L305.0,-3.6L304.4,-3.7L304.0,-2.9L305.0,-1.6L304.8,0.2L303.5,1.2L302.7,3.5L297.7,23.7L295.3,39.8L295.8,43.3L296.4,43.8L296.0,48.4L296.7,49.3L295.9,53.1L295.0,62.6L295.9,87.0L299.3,111.8L301.8,123.6L305.5,135.5L310.2,145.8L314.8,149.2L316.0,148.1L317.1,148.2L317.5,146.8L319.7,145.9L321.1,147.0L321.5,148.9L322.3,150.2L323.5,150.2L324.4,150.8L325.4,152.8L326.5,152.5L326.3,153.5L327.9,154.6L327.6,155.4L328.1,156.6L332.3,161.1L334.3,161.9L335.4,164.1L336.9,165.3L337.1,166.5L339.0,168.2L339.6,169.5L339.5,171.3L343.9,176.6L344.0,178.8L346.1,180.5L346.8,185.0L348.0,186.0L349.2,189.3L351.9,193.5L352.4,195.9L354.3,199.8L354.0,201.1L354.6,202.7L352.5,202.1L351.1,202.6L350.0,205.3L350.0,207.9L350.5,208.6L354.3,209.4L356.1,211.1L357.5,211.6L359.9,215.5L358.9,217.3L357.5,217.6L356.2,217.2L355.0,218.4L353.4,222.2L354.0,224.2L353.8,225.7L356.8,230.4L360.1,231.9L361.2,234.4L362.9,236.2L363.9,238.3L365.1,238.7L368.0,238.6L368.2,240.3L370.0,243.0L370.4,244.7L369.9,245.1L370.1,246.7L370.7,247.9L371.2,247.9L371.0,248.7L370.4,248.7L371.1,249.6L369.4,249.4L368.6,249.9L368.0,251.5L368.4,252.9L368.1,254.0L369.2,254.8L369.1,255.6L370.3,258.9L371.1,259.7L372.0,259.7L372.6,261.5L373.3,261.9L372.9,262.5L373.4,263.5L372.9,264.2L373.3,265.2L373.1,265.6L372.0,265.3L371.5,266.9L372.4,265.6L372.8,265.6L373.1,266.8L374.1,267.4L373.5,267.8L373.3,269.2L374.3,269.0L374.4,269.7L375.0,269.5L374.2,272.8L374.7,274.5L374.2,276.2L374.8,276.4L375.3,278.0L376.9,278.5L374.7,280.4L375.2,282.6L376.2,282.3L376.8,283.0L375.0,283.6L374.1,285.9L372.5,286.3L374.1,287.1L373.9,288.7L374.4,289.7L373.7,290.6L373.0,290.6L372.5,291.4L372.6,292.7L372.1,293.4L374.7,293.8L372.8,297.1L372.3,299.6L373.8,299.5L374.2,300.1L373.5,300.0L373.9,300.7L373.0,301.5L372.0,301.1L372.1,302.1L370.3,301.9L369.9,302.3L371.1,302.1L371.6,304.3L371.2,305.0L371.2,306.8L370.4,307.3L370.4,308.1L368.9,309.0L368.9,310.7L370.8,310.7L371.7,308.4L376.1,302.7L377.6,299.8L378.3,299.1L379.2,298.9L379.7,300.3L379.4,302.6L379.9,303.1L379.3,303.3L379.0,304.1L379.4,304.4L379.3,306.0L380.5,306.8L379.8,307.4L379.8,308.5L380.7,309.0L380.2,309.4L379.9,312.4L381.2,313.2L383.5,312.9L383.7,315.1L384.8,314.9L385.4,315.5L385.5,318.0L384.9,319.9L383.2,320.3L384.3,321.2L383.8,321.9L383.1,321.9L381.9,320.5L380.5,321.0L380.1,321.8L380.2,324.4L378.8,325.9L377.7,325.7L377.5,329.9L375.3,328.9L372.6,328.9L371.5,329.9L370.3,330.0L369.9,330.9L370.0,332.2L370.9,332.8L371.0,333.5L370.9,334.7L372.1,334.6L373.1,336.0L374.9,334.0L375.6,334.0L376.6,334.9L376.5,333.1L377.5,331.4L379.4,330.3L380.6,328.7L382.7,328.6L382.9,329.7L384.2,330.8L382.5,333.2L382.3,334.5L381.3,335.2L381.9,338.5L380.4,340.1L379.8,340.1L377.4,338.4L377.1,339.6L377.7,340.6L377.2,340.3L376.6,341.1L373.9,341.1L373.2,341.6L373.9,339.4L373.6,338.4L372.8,338.3L372.5,339.6L367.9,345.6L369.2,347.7L371.2,346.4L371.6,347.6L370.4,349.3L370.2,350.6L368.0,351.7L364.4,349.8L364.9,350.2L364.3,350.6L364.9,352.4L362.7,353.6L362.6,354.2L363.4,355.4L365.0,355.8L365.9,354.4L368.2,354.8L370.4,353.1L372.4,353.5L373.9,351.8L375.5,351.4L373.6,353.7L372.7,355.7L373.1,356.8L372.2,357.9L370.6,357.2L369.7,357.9L368.9,357.5L368.1,358.6L366.0,358.3L365.1,359.3L363.9,358.8L362.8,359.2L361.7,358.8L361.5,359.8L363.9,360.6L364.1,361.6L365.1,362.2L366.1,362.2L366.5,363.3L366.0,363.7L366.7,365.0L366.4,365.9L365.7,365.9L365.1,365.0L364.5,365.6L363.5,364.7L361.6,364.6L361.2,365.6L360.5,365.3L362.0,366.0L363.3,367.4L361.8,368.0L361.7,368.9L363.7,368.6L364.8,369.0L364.8,369.9L365.6,370.6L366.7,369.1L367.4,369.7L368.0,369.5L367.9,368.9L368.7,369.1L372.0,368.1L372.4,368.9L370.0,369.4L368.6,370.5L369.4,370.9L369.4,372.2L370.1,373.1L369.3,374.3L367.8,373.1L366.3,373.4L366.6,374.4L365.3,374.7L363.2,376.4L362.6,375.7L361.5,375.5L362.1,376.5L361.5,377.4L360.9,376.7L358.5,376.1L358.5,377.0L359.4,377.3L358.7,378.2L358.8,378.5L360.1,378.4L361.8,380.1L365.5,379.2L366.1,379.7L366.1,381.1L363.8,382.5L361.6,384.6L358.9,385.2L356.1,384.6L354.7,386.2L357.0,388.0L358.9,388.6L359.7,391.3L361.7,391.6L363.0,391.0L365.8,393.5L363.1,394.1L362.0,395.2L361.8,396.1L361.1,396.0L360.2,396.8L359.5,394.8L358.1,395.0L357.9,394.0L357.3,393.7L355.1,393.7L352.4,392.0L351.5,392.1L351.3,393.8L351.8,395.0L351.3,396.0L351.9,396.5L353.0,396.5L353.0,398.4L355.1,398.5L355.6,398.1L357.7,399.1L359.0,398.8L359.7,400.1L358.5,401.2L357.7,400.8L357.1,401.2L354.4,400.9L353.8,401.5L352.1,401.6L353.0,403.3L356.3,404.7L356.7,406.4L356.1,406.7L352.9,406.7L351.9,407.3L350.7,406.7L349.9,407.1L349.3,406.4L349.5,404.0L347.7,406.3L346.6,406.3L345.7,405.4L345.1,407.5L344.4,408.1L343.1,407.9L342.4,407.1L341.1,407.4L340.2,406.2L341.5,405.8L340.7,405.5L341.4,404.5L340.8,403.1L341.2,403.2L341.8,402.1L341.0,402.5L341.5,400.3L339.8,399.1L339.8,404.4L338.0,407.2L338.6,408.3L339.1,408.7L339.6,408.0L341.4,409.9L341.4,411.3L342.3,411.8L342.4,413.0L342.2,413.7L339.7,413.4L339.1,411.8L338.2,412.0L339.0,414.4L338.1,414.2L337.7,415.2L336.7,415.4L336.3,416.1L336.9,416.9L338.4,416.6L339.7,417.3L340.3,419.4L339.8,419.8L338.7,419.5L338.6,420.5L337.5,420.7L337.5,421.6L336.2,421.2L335.9,420.3L335.2,420.5L335.6,419.5L334.9,418.7L334.9,417.4L334.3,416.5L333.4,416.5L332.1,415.3L332.3,413.2L334.0,412.0L333.1,411.3L333.0,410.5L331.9,410.4L331.3,411.5L331.0,410.3L327.7,410.4L326.4,412.6L327.1,413.2L326.9,414.6L327.7,415.7L327.9,417.3L328.5,417.6L329.1,419.0L327.7,418.5L327.6,419.1L328.9,420.9L329.7,421.1L329.1,421.8L329.2,422.6L328.3,423.2L329.0,423.4L330.3,425.1L329.7,426.5L330.6,426.9L330.3,427.7L332.3,429.6L331.8,431.4L332.8,432.7L333.5,434.9L332.9,435.6L332.1,434.7L331.2,434.9L329.7,433.1L329.1,431.1L328.0,430.0L327.7,428.7L328.2,428.0L327.4,428.8L326.6,428.7L327.4,429.8L326.3,429.6L325.4,431.2L324.9,431.1L324.2,431.8L322.5,429.1L321.9,428.9L321.6,427.0L321.0,426.7L320.7,428.0L321.0,428.9L323.0,430.8L322.1,431.5L321.4,436.9L322.1,439.3L323.4,439.7L323.9,440.5L322.7,440.7L322.2,441.5L320.6,441.5L320.2,442.0L320.4,443.1L319.5,444.1L319.2,443.3L318.1,443.5L317.6,444.0L317.6,445.2L312.8,447.3L312.2,450.2L312.8,452.0L313.5,451.9L314.4,453.8L315.3,454.0L315.4,454.8L315.0,455.1L316.3,455.3L316.3,456.3L316.9,455.5L318.6,455.5L318.4,457.0L318.8,457.7L317.7,458.5L317.8,459.5L318.8,460.3L318.4,463.6L318.0,463.8L317.3,463.0L317.7,461.3L317.1,460.6L316.3,460.4L314.7,461.3L314.6,460.1L313.5,459.4L313.6,460.6L313.0,460.8L313.2,461.5L311.7,464.6L310.1,463.4L308.9,464.0L309.7,465.4L309.2,466.8L308.8,466.2L307.9,466.5L307.3,465.9L306.6,465.9L305.0,467.0L302.7,467.0L303.5,469.5L302.5,471.4L304.9,471.8L305.2,471.1L305.9,471.1L307.9,471.8L309.7,471.5L310.8,472.7L314.2,472.6L313.8,476.1L312.4,478.4L311.2,478.3L311.6,478.9L310.6,478.9L310.3,480.6L309.2,480.8L308.3,481.8L305.9,482.1L301.1,484.9L299.7,487.8L300.1,488.4L302.4,484.9L304.9,483.5L305.4,485.2L307.6,486.0L308.4,487.1L308.3,488.8L309.2,490.1L311.2,490.1L312.0,488.4L312.9,489.0L314.4,487.7L314.7,489.1L314.3,490.3L315.0,490.5L316.1,492.0L314.8,494.4L315.2,495.2L315.7,494.9L315.8,495.4L315.0,496.4L315.2,497.4L314.7,497.9L313.4,497.7L313.3,497.0L312.2,496.8L311.7,493.9L309.4,494.3L307.7,492.6L306.8,492.7L308.2,494.1L308.8,496.0L309.7,496.0L309.2,498.1L310.0,499.3L309.1,501.0L308.0,501.1L307.2,501.9L308.2,502.5L310.3,502.5L309.6,503.5L310.1,504.5L311.0,504.6L311.5,503.8L311.9,504.5L311.5,505.3L309.9,505.6L309.5,506.6L308.6,505.7L307.8,506.7L306.9,506.1L305.7,506.1L304.6,505.3L303.5,505.6L305.4,507.3L305.8,508.5L306.8,509.0L306.6,511.0L305.8,512.7L306.1,513.4L307.6,512.9L308.1,511.8L310.2,510.2L310.7,510.4L310.5,512.5L311.7,513.0L312.2,513.7L314.0,513.2L314.8,512.3L315.5,513.4L315.5,514.8L314.5,515.7L313.9,515.7L313.4,514.7L312.4,515.1L311.6,514.4L310.7,515.7L308.6,516.1L307.8,516.7L308.4,517.9L309.6,517.4L310.0,517.8L312.1,517.5L313.0,519.0L313.6,521.7L314.6,522.8L313.6,525.3L314.5,526.4L315.5,526.6L315.6,528.5L315.4,529.3L313.7,530.4L313.3,532.9L313.7,533.9L312.9,534.5L311.7,533.8L311.2,530.6L309.3,530.8L309.5,528.9L309.0,528.3L307.1,528.7L306.2,527.5L305.9,528.6L305.4,528.6L303.5,527.0L304.3,525.9L305.7,525.8L305.8,524.9L306.7,524.3L306.6,523.8L305.3,523.3L304.9,521.2L303.8,522.7L303.4,522.6L303.2,520.7L301.6,522.6L301.1,522.6L300.9,521.9L299.0,521.6L299.1,520.4L300.6,518.9L302.3,518.5L302.8,517.6L304.3,517.2L302.4,516.8L301.3,517.4L301.7,516.0L300.2,515.7L299.9,515.2L301.0,513.7L300.9,513.2L298.8,514.2L297.8,512.5L295.6,515.3L293.1,515.6L292.2,514.8L292.8,513.1L292.5,511.4L291.4,510.6L285.9,510.9L285.3,510.4L284.1,510.4L280.5,510.9L280.4,510.3L279.8,509.9L277.5,510.4L277.0,509.8L276.0,512.3L273.0,513.3L269.1,515.5L265.5,518.3L264.9,520.3L261.8,519.3L261.9,517.1L258.3,515.4L258.2,515.9L259.2,516.9L258.4,517.0L258.1,518.1L257.0,516.4L255.7,516.0L253.5,516.8L253.4,517.7L252.4,518.4L252.6,520.9L251.9,521.0L251.3,522.0L249.9,521.6L249.2,522.9L249.5,523.5L250.9,523.7L250.5,524.9L248.0,526.0L250.0,526.5L250.0,527.4L250.5,527.8L250.9,527.2L252.2,526.9L252.8,525.8L253.8,526.1L254.5,526.6L254.7,528.1L255.8,529.4L255.7,530.1L255.2,530.6L253.7,530.6L252.2,532.7L251.0,533.2L249.0,533.8L248.6,532.8L247.8,533.6L246.6,533.8L246.7,534.2L248.4,534.7L244.9,539.2L244.3,540.9L243.3,541.5L240.9,545.6L239.0,550.4L239.7,547.6L238.9,547.3L239.3,548.4L238.5,550.0L236.1,548.2L235.4,546.7L233.5,546.4L235.3,546.8L236.2,548.9L238.4,550.4L236.6,553.1L237.4,552.8L237.5,553.5L238.6,550.8L239.2,551.2L237.4,555.0L235.2,562.5L234.2,568.4L234.2,571.2L233.9,571.7L232.8,571.3L232.3,570.5L232.6,567.3L230.4,564.7L231.9,567.4L231.5,569.5L231.7,571.3L233.5,572.7L234.2,571.9L233.9,574.2L232.8,573.4L232.4,573.9L231.3,573.6L230.8,574.4L232.9,575.0L233.1,574.2L233.7,574.6L232.9,580.0L233.3,588.2L235.8,601.2L237.2,604.1L238.1,607.5L240.5,609.4L242.5,609.7L243.2,618.6L244.5,620.0L245.5,622.5L245.9,624.9L245.7,632.1L247.7,639.7L247.7,650.2L-52.8,650.2L-52.8,644.4Z"/>
+<path d="M258.1,-70.6L256.5,-68.2L256.7,-67.3L254.8,-66.2L254.4,-63.9L251.0,-62.4L251.2,-60.9L248.9,-61.1L248.2,-60.4L248.2,-59.6L247.1,-59.6L246.6,-60.3L244.3,-58.7L243.4,-59.1L239.5,-58.0L238.1,-58.9L235.8,-62.2L233.9,-63.4L225.4,-66.8L221.3,-67.1L215.9,-69.5L212.7,-69.3L209.3,-68.4L207.3,-65.9L207.7,-64.2L206.2,-64.2L204.8,-63.4L203.7,-65.9L203.6,-67.9L204.8,-69.3L205.2,-70.6L205.6,-70.6L205.6,-69.6L206.3,-69.8L206.7,-68.4L207.9,-69.7L208.1,-70.6L258.1,-70.6Z"/>
+<path d="M193.3,-70.6L193.1,-68.7L192.0,-67.6L191.5,-63.7L190.1,-63.6L188.8,-62.8L188.6,-62.0L186.4,-61.4L185.9,-60.3L184.6,-59.9L182.8,-58.1L181.7,-56.4L180.5,-56.7L179.5,-56.2L177.8,-56.4L177.3,-55.9L175.2,-56.4L174.6,-55.8L172.9,-55.8L170.6,-53.0L169.6,-50.1L168.8,-41.3L169.0,-33.0L170.1,-30.4L168.6,-27.1L167.6,-26.8L167.7,-26.1L166.2,-24.7L166.2,-24.1L164.7,-24.4L163.0,-23.7L159.8,-23.7L158.8,-23.3L158.1,-22.1L156.4,-22.2L152.8,-19.7L150.4,-19.4L146.3,-17.7L146.1,-15.3L144.8,-14.7L143.4,-10.5L141.5,-8.4L140.7,-5.1L138.2,-2.9L136.3,-3.7L133.1,-7.1L131.2,-8.3L127.9,-8.6L124.5,-7.7L123.4,-7.0L123.2,-7.4L122.1,-7.5L121.5,-8.7L118.2,-11.5L117.5,-11.5L115.7,-14.2L115.9,-16.1L114.1,-19.1L114.1,-21.0L113.6,-21.1L113.7,-22.6L112.3,-25.3L111.8,-28.0L110.8,-28.8L110.1,-31.0L109.7,-40.1L110.9,-43.0L111.0,-45.2L111.8,-46.3L111.6,-47.6L112.3,-47.8L113.1,-54.8L115.2,-57.4L115.7,-59.2L116.8,-60.0L119.6,-64.5L121.1,-67.8L121.4,-70.6L193.3,-70.6Z"/>
+<path d="M122.5,289.4L122.6,289.8L124.4,290.8L124.6,292.0L123.7,292.9L120.2,293.2L120.1,289.1L118.8,281.9L119.8,283.4L122.9,287.8L122.5,289.4Z"/>
+<path d="M316.3,529.2L318.8,527.3L319.3,528.2L321.8,529.5L320.8,531.9L321.3,533.7L320.2,534.9L317.0,531.6L316.3,529.2Z"/>
+<path d="M8.4,506.1L9.0,505.5L9.0,504.5L9.8,504.5L9.5,502.4L10.6,502.1L11.3,501.1L11.5,499.9L12.2,499.6L12.4,498.7L13.3,498.4L14.0,497.3L15.1,497.7L14.5,498.9L13.9,502.4L12.2,504.7L9.8,506.6L8.4,506.1Z"/>
+<path d="M24.5,-22.9L24.7,-24.7L25.5,-25.8L27.0,-25.0L29.7,-25.2L30.5,-24.5L31.0,-23.2L30.1,-21.9L27.4,-20.5L27.0,-20.8L26.3,-19.9L25.2,-20.2L25.0,-22.2L24.5,-22.9Z"/>
+</g><g class="m-lake">
+<path d="M292.3,99.1L290.8,104.2L292.7,110.9L292.3,113.7L290.5,115.9L287.7,116.2L283.9,118.1L283.0,117.7L283.0,115.7L281.3,113.7L281.3,112.8L282.8,111.9L285.7,112.5L286.4,112.1L286.8,111.2L285.5,107.1L284.8,102.7L285.0,98.9L286.5,93.5L287.8,93.6L288.3,95.2L292.1,95.6L292.7,96.3L292.9,97.1L292.1,99.2Z"/>
+<path d="M223.4,156.6L226.4,155.4L229.2,155.4L231.3,155.9L235.1,158.0L236.9,160.0L237.6,162.5L236.1,165.2L235.3,165.4L234.4,164.8L233.7,163.3L232.7,163.0L232.4,163.9L232.6,166.6L231.9,167.1L231.1,167.3L229.1,165.4L228.5,166.1L228.8,166.8L228.4,168.9L226.8,169.4L225.0,168.6L222.1,162.4L221.8,159.8L224.1,156.6L226.5,155.6L223.4,156.6Z"/>
+<path d="M199.7,284.1L202.3,285.1L203.6,286.3L204.9,289.5L203.4,292.3L199.4,293.6L197.6,293.0L196.3,287.0L197.0,285.3L199.5,284.3Z"/>
+</g>
+<text class="m-pref" x="237.6" y="63.2">青森縣</text>
+<text class="m-pref" x="155.8" y="355.1">秋田縣</text>
+<text class="m-pref" x="307.6" y="317.5">岩手縣</text>
+<text class="m-pref" x="194.0" y="474.0">宮城縣</text>
+<path class="m-route-case" d="M233.2,556.5L245.5,531.3L252.1,517.5L264.0,479.1L261.4,436.8L257.3,412.5L258.7,363.7L231.0,360.3L184.8,358.6L175.6,334.6L186.1,310.0L200.6,290.1L216.5,276.4L200.6,290.1L186.1,310.0L217.8,298.7L264.0,291.8L250.8,240.3L225.7,207.5L229.5,160.0L238.9,145.1L225.5,127.0L204.6,126.0L190.1,129.4L173.4,135.9L154.4,115.5L139.1,105.2L125.4,124.8L101.5,128.2L99.9,141.1L102.4,168.9L116.2,204.0L125.8,288.4"/>
+<path class="m-route" d="M233.2,556.5L245.5,531.3L252.1,517.5L264.0,479.1L261.4,436.8L257.3,412.5L258.7,363.7L231.0,360.3L184.8,358.6L175.6,334.6L186.1,310.0L200.6,290.1L216.5,276.4L200.6,290.1L186.1,310.0L217.8,298.7L264.0,291.8L250.8,240.3L225.7,207.5L229.5,160.0L238.9,145.1L225.5,127.0L204.6,126.0L190.1,129.4L173.4,135.9L154.4,115.5L139.1,105.2L125.4,124.8L101.5,128.2L99.9,141.1L102.4,168.9L116.2,204.0L125.8,288.4"/>
+<path class="m-route-case" d="M125.8,288.4L175.6,334.6L184.8,358.6L258.7,363.7L261.4,423.2L238.9,484.1L227.0,534.7L233.2,556.5"/>
+<path class="m-back" d="M125.8,288.4L175.6,334.6L184.8,358.6L258.7,363.7L261.4,423.2L238.9,484.1L227.0,534.7L233.2,556.5"/>
+<g class="m-pin" data-id="sendai-ap" tabindex="0" role="button" aria-label="仙台空港">
+<circle class="m-hit" cx="233.2" cy="556.5" r="15"/>
+<circle class="m-dot-term" cx="233.2" cy="556.5" r="6"/>
+<circle class="m-dot-term-in" cx="233.2" cy="556.5" r="2.4"/>
+<text class="m-lbl strong" x="242.2" y="560.5" text-anchor="start">仙台空港</text>
+</g>
+<g class="m-pin" data-id="matsushima-cruise" tabindex="0" role="button" aria-label="松島">
+<circle class="m-hit" cx="252.1" cy="517.5" r="15"/>
+<circle class="m-dot-stay" cx="252.1" cy="517.5" r="7.5"/>
+<text class="m-badge" x="252.1" y="520.4">1</text>
+<text class="m-lbl strong" x="261.1" y="521.5" text-anchor="start">松島</text>
+</g>
+<g class="m-pin" data-id="chusonji" tabindex="0" role="button" aria-label="平泉">
+<circle class="m-hit" cx="257.3" cy="412.5" r="15"/>
+<circle class="m-dot" cx="257.3" cy="412.5" r="4"/>
+<text class="m-lbl" x="266.3" y="416.5" text-anchor="start">平泉</text>
+</g>
+<g class="m-pin" data-id="kakunodate" tabindex="0" role="button" aria-label="角館">
+<circle class="m-hit" cx="186.4" cy="310.0" r="15"/>
+<circle class="m-dot" cx="186.4" cy="310.0" r="4"/>
+<text class="m-lbl" x="177.4" y="314.0" text-anchor="end">角館</text>
+</g>
+<g class="m-pin" data-id="tazawako" tabindex="0" role="button" aria-label="田澤湖">
+<circle class="m-hit" cx="200.6" cy="290.1" r="15"/>
+<circle class="m-dot" cx="200.6" cy="290.1" r="4"/>
+<text class="m-lbl" x="191.6" y="287.1" text-anchor="end">田澤湖</text>
+</g>
+<g class="m-pin" data-id="nyuto" tabindex="0" role="button" aria-label="乳頭溫泉">
+<circle class="m-hit" cx="216.5" cy="276.4" r="15"/>
+<circle class="m-dot-stay" cx="216.5" cy="276.4" r="7.5"/>
+<text class="m-badge" x="216.5" y="279.3">2</text>
+<text class="m-lbl strong" x="225.5" y="277.4" text-anchor="start">乳頭溫泉</text>
+</g>
+<g class="m-pin" data-id="towadako" tabindex="0" role="button" aria-label="十和田湖">
+<circle class="m-hit" cx="229.5" cy="160.0" r="15"/>
+<circle class="m-dot-stay" cx="229.5" cy="160.0" r="7.5"/>
+<text class="m-badge" x="229.5" y="162.9">3</text>
+<text class="m-lbl strong" x="220.5" y="164.0" text-anchor="end">十和田湖</text>
+</g>
+<g class="m-pin" data-id="oirase" tabindex="0" role="button" aria-label="奧入瀨">
+<circle class="m-hit" cx="238.9" cy="145.1" r="15"/>
+<circle class="m-dot" cx="238.9" cy="145.1" r="4"/>
+<text class="m-lbl" x="247.9" y="148.1" text-anchor="start">奧入瀨</text>
+</g>
+<g class="m-pin" data-id="hakkoda" tabindex="0" role="button" aria-label="八甲田">
+<circle class="m-hit" cx="225.5" cy="127.0" r="15"/>
+<circle class="m-dot" cx="225.5" cy="127.0" r="4"/>
+<text class="m-lbl" x="233.5" y="122.0" text-anchor="start">八甲田</text>
+</g>
+<g class="m-pin" data-id="hirosaki-park" tabindex="0" role="button" aria-label="弘前">
+<circle class="m-hit" cx="173.4" cy="135.9" r="15"/>
+<circle class="m-dot-stay" cx="173.4" cy="135.9" r="7.5"/>
+<text class="m-badge" x="173.4" y="138.8">4</text>
+<text class="m-lbl strong" x="164.4" y="139.9" text-anchor="end">弘前</text>
+</g>
+<g class="m-pin" data-id="senjojiki" tabindex="0" role="button" aria-label="千疊敷">
+<circle class="m-hit" cx="125.4" cy="124.8" r="15"/>
+<circle class="m-dot" cx="125.4" cy="124.8" r="4"/>
+<text class="m-lbl" x="116.4" y="122.8" text-anchor="end">千疊敷</text>
+</g>
+<g class="m-pin" data-id="furofushi" tabindex="0" role="button" aria-label="深浦">
+<circle class="m-hit" cx="99.9" cy="141.1" r="15"/>
+<circle class="m-dot" cx="99.9" cy="141.1" r="4"/>
+<text class="m-lbl" x="90.9" y="145.1" text-anchor="end">深浦</text>
+</g>
+<g class="m-pin" data-id="aoike" tabindex="0" role="button" aria-label="十二湖">
+<circle class="m-hit" cx="102.4" cy="168.9" r="15"/>
+<circle class="m-dot" cx="102.4" cy="168.9" r="4"/>
+<text class="m-lbl" x="93.4" y="172.9" text-anchor="end">十二湖</text>
+</g>
+<g class="m-pin" data-id="senshu-park" tabindex="0" role="button" aria-label="秋田市">
+<circle class="m-hit" cx="125.8" cy="288.4" r="15"/>
+<circle class="m-dot-stay" cx="125.8" cy="288.4" r="7.5"/>
+<text class="m-badge" x="125.8" y="291.3">5</text>
+<text class="m-lbl strong" x="116.8" y="292.4" text-anchor="end">秋田市</text>
+</g>
+<g class="m-scale"><line x1="23.8" y1="556.5" x2="100.8" y2="556.5"/><line x1="23.8" y1="553.5" x2="23.8" y2="559.5"/><line x1="100.8" y1="553.5" x2="100.8" y2="559.5"/><text x="62.3" y="550.5">50 km</text></g>
+<g class="m-north"><path d="M370.0,13 L375.0,31 L370.0,27 L365.0,31 Z"/><text x="370.0" y="43">N</text></g>
+</svg>
+      <p class="maphint">海岸線與湖泊為實際地理資料（GSHHS）。地圖標記對應行程主要節點，點一下會捲動到該景點並標示出來。</p>
+    </div>
+  </aside>
+  <main class="list" id="list"></main>
+</div>
+
+<p class="foot">
+  照片由瀏覽器即時向 Wikipedia／Wikimedia Commons 取得，版權屬原作者，授權條款見各圖連結。<br>
+  營業時間、票價、交通管制與一人泊條件請於出發前向官方再次確認。
+</p>
+
+<script>
+/* 東北大環線・景點資料 */
+const SPOTS = [
+{
+  id:"sendai-ap", day:1, name:"仙台空港", jp:"仙台空港", romaji:"Sendai Airport",
+  type:"交通", stay:"60 分", time:"16:00",
+  lat:38.1397, lng:140.9170,
+  wiki:["仙台空港"],
+  desc:"東北的空路門戶，也是這趟環線的起點與終點。航廈只有一座，動線單純，國際線入境後步行即可到租車公司的接駁櫃檯。取車手續加上導航設定，實際會花掉將近一小時，班機落地後不要把當天的行程排得太滿。",
+  fields:[
+    ["去程","JX862　TPE 11:35 → SDJ 16:00　A330-900neo・經濟艙"],
+    ["回程","JX863　SDJ 17:20 → TPE 20:10　9/27（日）"],
+    ["取車","各租車公司在航廈設接駁站，接駁到營業所約 5–10 分鐘"],
+    ["務必確認","免責補償與 NOC 已加保；ETC 卡已插入並測試；東北高速 Pass 須在此時同時申請"],
+    ["還車","D6 回程須加滿油並保留收據，否則會被收較高的代加油費"]
+  ],
+  tip:"導航先設好第一個目的地再上路。日本租車導航多半可用 MAPCODE 或電話號碼輸入，比打日文地名快。",
+  keys:"仙台 機場 取車 租車 ETC"
+},
+{
+  id:"saigyo", day:2, name:"西行戻し松公園", jp:"西行戻しの松公園", romaji:"Saigyō-modoshi-no-matsu",
+  type:"展望", stay:"45 分", time:"07:15",
+  lat:38.3628, lng:141.0489,
+  wiki:["松島"],
+  desc:"松島灣唯一能一次收進整片島群的制高點。從停車場走幾步就到展望台，視野往東南方展開，260 餘座松島與福浦橋一起入鏡。名稱來自傳說中平安末期歌人西行法師在此被童子問倒而折返的松樹。",
+  fields:[
+    ["停車","公園有免費停車場，容量不大，日落時段會滿"],
+    ["費用","免費"],
+    ["時段調整","原排 D1 傍晚，因 JX862 16:00 才落地趕不上日落，改到 D2 清晨"],
+    ["視野","朝東南，清晨側逆光，島群剪影層次好"]
+  ],
+  photo:"展望台朝東南，清晨是側逆光，島群會呈現剪影層次；海面霧氣未散時效果最好。35mm 剛好涵蓋灣面；想壓縮島嶼層次改用 50／70mm 裁切模式。",
+  keys:"松島 展望 夕陽 日落"
+},
+{
+  id:"matsushima-cruise", day:2, name:"松島島巡り觀光船", jp:"松島島巡り観光船・仁王丸コース", romaji:"Matsushima Bay Cruise",
+  type:"海岸", stay:"50 分", time:"08:30",
+  lat:38.3720, lng:141.0625,
+  wiki:["松島"],
+  desc:"日本三景之一。約 5,000 年前地殼下沉與海面上升，讓丘陵頂端變成 260 餘座島嶼。仁王丸航線繞行灣內主要名勝一圈，包含形狀最著名的仁王島、鍋島（又名百合島）、水島。二樓甲板視野最好。",
+  fields:[
+    ["票價","成人 ¥1,500（50 分航程）"],
+    ["預約","官網或電話可事前預約，網路預約有優惠；現場窗口為原價"],
+    ["付款","現場僅收現金或 PayPay"],
+    ["停車","遊覽船沒有專用停車場，需停周邊收費停車場"],
+    ["搭乘","依桟橋排隊順序上船，想坐窗邊要早點排"]
+  ],
+  tip:"搭第一班（通常 09:00）——人最少、光線最好。天候不佳時會臨時停航，出發前看官網的運航狀況。",
+  photo:"上午順光。船身晃動，快門建議 1/500 以上。",
+  keys:"松島 遊覽船 仁王丸 島 三景"
+},
+{
+  id:"zuiganji", day:2, name:"五大堂・瑞巖寺", jp:"五大堂・瑞巌寺", romaji:"Godaidō / Zuigan-ji",
+  type:"古蹟", stay:"60 分", time:"09:45",
+  lat:38.3730, lng:141.0630,
+  wiki:["瑞巌寺","五大堂"],
+  desc:"五大堂立在灣邊小島上，要走過鏤空的「透橋」才能抵達——橋面板間留有縫隙，可以看見腳下的海，據說是為了讓參拜者收斂心神。瑞巖寺是伊達政宗重建的伊達家菩提寺，本堂與庫裡都是國寶，杉木參道與洞窟遺跡群沿途相連。",
+  fields:[
+    ["費用","五大堂免費；瑞巖寺成人 ¥700"],
+    ["時間","瑞巖寺 08:30–17:00（季節調整）"],
+    ["步行","從遊覽船乘船處步行 5–10 分鐘可達"]
+  ],
+  photo:"五大堂的透橋是經典取景點，早上人少時最好拍。",
+  keys:"五大堂 瑞巖寺 伊達政宗 國寶 松島"
+},
+{
+  id:"chusonji", day:2, name:"中尊寺・金色堂", jp:"中尊寺・金色堂", romaji:"Chūson-ji",
+  type:"世界遺產", stay:"75 分", time:"13:30",
+  lat:38.9930, lng:141.0990,
+  wiki:["中尊寺","金色堂"],
+  desc:"奧州藤原氏在 12 世紀營造的佛國土，世界遺產「平泉」的核心。金色堂整座以金箔與螺鈿裝飾，現在被保護在覆堂之內、隔著玻璃參觀。從山門到本堂的月見坂是一段杉木夾道的緩上坡，走上去約 15 分鐘。",
+  fields:[
+    ["費用","金色堂・讚衡藏共通券 成人 ¥1,000"],
+    ["時間","08:30–17:00（11 月上旬–2 月底 至 16:30）"],
+    ["停車","門前町有收費停車場，約 ¥400"],
+    ["攝影","金色堂內部禁止攝影"]
+  ],
+  tip:"月見坂是緩坡但有距離，穿好走的鞋。時間緊時可只看金色堂與讚衡藏。",
+  keys:"中尊寺 金色堂 平泉 世界遺產 奧州藤原"
+},
+{
+  id:"motsuji", day:2, name:"毛越寺・淨土庭園", jp:"毛越寺・浄土庭園", romaji:"Mōtsū-ji",
+  type:"庭園", stay:"45 分", time:"14:45",
+  lat:38.9856, lng:141.1080,
+  wiki:["毛越寺"],
+  desc:"伽藍建築幾乎都已不存，但平安時代的淨土庭園完整保留下來——以大泉池為中心，池畔的出島石組與立石重現當時「此岸眺望彼岸淨土」的空間觀。日本現存最古的作庭書《作庭記》所描述的手法，在這裡看得最清楚。",
+  fields:[
+    ["費用","成人 ¥700"],
+    ["時間","08:30–17:00"],
+    ["停車","收費停車場 約 ¥300"]
+  ],
+  photo:"池面倒影是主角，午後順光。CPL 可控水面反光，但別轉到底——留一點反射，倒影才立體。",
+  keys:"毛越寺 淨土庭園 大泉池 平泉"
+},
+{
+  id:"tazawako", day:2, name:"田澤湖・辰子像", jp:"田沢湖・たつこ像", romaji:"Lake Tazawa",
+  type:"湖泊", stay:"45 分", time:"17:45",
+  lat:39.6790, lng:140.6390,
+  wiki:["田沢湖","たつこ像"],
+  desc:"日本最深的湖，水深 423 公尺，湖水因此呈現濃郁的鈷藍色，而且終年不結冰。西岸的金色辰子像取自當地傳說：少女辰子為求永保青春飲下泉水，化身為湖中之龍。金身在藍水前極為顯眼。",
+  fields:[
+    ["費用","免費"],
+    ["停車","辰子像旁有免費停車場"],
+    ["環湖","一周約 20 公里，開車約 40 分鐘"],
+    ["水色","晴天正午最藍；陰天會轉為灰綠"]
+  ],
+  photo:"辰子像下午到傍晚順光，早上是逆光。日落約 17:30，趕在日落前抵達。",
+  keys:"田澤湖 辰子 最深 湖 秋田"
+},
+{
+  id:"nyuto", day:2, name:"乳頭溫泉鄉", jp:"乳頭温泉郷", romaji:"Nyūtō Onsen-kyō",
+  type:"溫泉・住宿", stay:"住宿", time:"18:30",
+  lat:39.7930, lng:140.7950,
+  wiki:["乳頭温泉郷"],
+  desc:"乳頭山麓的七軒溫泉宿聚落，各家泉質不同，白濁的硫黃泉最具代表性。鶴の湯的茅葺屋與露天混浴風呂是最知名的畫面，但也最難訂。整個溫泉鄉海拔約 700–800 公尺，九月底入夜後會明顯轉涼。",
+  fields:[
+    ["一人泊","鶴の湯、妙乃湯假日多半不收單人；休暇村乳頭温泉郷接受度最高"],
+    ["湯めぐり","住宿者可購「湯めぐり帖」巡迴各家浴場（有運行時間限制）"],
+    ["道路","進入溫泉鄉的道路狹窄多彎，天黑後要放慢"],
+    ["訊號","部分旅館收訊差，先確認隔天路線"]
+  ],
+  tip:"訂房搜尋條件務必勾「1 名」。這一晚是全程唯一的傳統溫泉旅館體驗，值得早訂。",
+  keys:"乳頭溫泉 鶴の湯 硫黃 秘湯 住宿"
+},
+{
+  id:"kakunodate", day:3, name:"角館武家屋敷通", jp:"角館武家屋敷通り", romaji:"Kakunodate Samurai District",
+  type:"町並", stay:"2 小時", time:"08:45",
+  lat:39.6020, lng:140.5670,
+  wiki:["角館町","武家屋敷"],
+  desc:"「陸奧小京都」。江戶初期規劃的城下町，武家町與商人町以火除（防火空地）分隔，格局四百年未變。黑色板塀沿街連綿，牆內是枝垂櫻與老宅，青柳家與石黑家可入內參觀。九月底沒有櫻花，但少了人潮，街道本身的質感反而更清楚。",
+  fields:[
+    ["費用","街道免費；青柳家 ¥500、石黑家 ¥400"],
+    ["時間","各屋敷約 09:00–17:00"],
+    ["停車","町營櫻並木停車場 ¥500／次"],
+    ["午餐","比內地雞親子丼、稻庭烏龍"]
+  ],
+  photo:"09:00 前遊客最少。斜射光打在黑色板塀上時質感最好——這是 35mm 定焦的絕對主場。",
+  keys:"角館 武家屋敷 小京都 黑板塀 秋田"
+},
+{
+  id:"towadako", day:3, name:"十和田湖・休屋", jp:"十和田湖・休屋", romaji:"Lake Towada",
+  type:"湖泊", stay:"90 分", time:"15:00",
+  lat:40.4400, lng:140.9060,
+  wiki:["十和田湖"],
+  desc:"雙重破火山口湖，湖面海拔 400 公尺、最大水深 327 公尺，是日本第三深。休屋是湖畔最主要的聚落，高村光太郎的「乙女之像」立在御前濱的湖岸，兩尊女性裸像相對而立，是十和田湖的象徵。湖水透明度高，岸邊可以直接看到水下的石頭。",
+  fields:[
+    ["費用","免費（遊覽船另計）"],
+    ["停車","休屋有收費停車場 ¥500"],
+    ["補給","休屋有商店與餐廳，是這一帶最後的補給點"],
+    ["名產","姫鱒（ヒメマス）生魚片與鹽烤"]
+  ],
+  photo:"御前濱的湖岸線平緩開闊，下午順光。乙女之像逆光時可拍剪影。",
+  keys:"十和田湖 乙女之像 御前濱 破火山口 姫鱒"
+},
+{
+  id:"kankodai", day:3, name:"瞰湖台展望所", jp:"瞰湖台", romaji:"Kankodai Lookout",
+  type:"展望", stay:"40 分", time:"16:50",
+  lat:40.4320, lng:140.9330,
+  wiki:["十和田湖"],
+  desc:"位於中山半島與御倉半島之間的展望點，是俯瞰十和田湖層次最好的位置——中湖的深藍、兩座半島的稜線與遠方湖灣一次入鏡。從休屋開車約 20 分鐘，路旁就有停車空間。",
+  fields:[
+    ["費用","免費"],
+    ["停車","路邊展望所停車空間，約可停 10 台"],
+    ["路況","縣道 16 號，彎道多但路面良好"]
+  ],
+  photo:"下午 15:00–16:30 側光時湖面層次最好。35mm 略嫌不足，可用裁切模式拉近半島稜線。",
+  keys:"瞰湖台 十和田湖 展望 中山半島"
+},
+{
+  id:"oirase", day:4, name:"奧入瀨溪流", jp:"奥入瀬渓流", romaji:"Oirase Gorge",
+  type:"溪流・森林", stay:"3 小時", time:"07:00",
+  lat:40.5390, lng:140.9720,
+  wiki:["奥入瀬渓流","銚子大滝"],
+  desc:"十和田湖唯一的流出河川，從子ノ口到燒山全長約 14 公里。國道 102 號與步道並行沿溪而下，苔蘚覆蓋的岩石、倒木與十餘座瀑布連續出現。銚子大瀑布是唯一橫跨整條溪的瀑布，也是阻止魚類上溯十和田湖的天然屏障；阿修羅之流則是水勢最激烈的一段。",
+  fields:[
+    ["2026 管制","私家車管制（マイカー交通規制）2026 年度實施期間為 9/7–9/13，9/24 前往不受影響"],
+    ["費用","免費"],
+    ["停車","石ヶ戸休憩所、銚子大瀑布周邊有停車場，08:00 後容易滿"],
+    ["建議走法","車停石ヶ戸，步行往上到雲井瀑布折返，再開車到銚子大瀑布單點拍"],
+    ["路況","溪畔國道狹窄，禁止路肩停車"]
+  ],
+  photo:"07:00–09:00 光線最柔，溪谷不會出現硬光斑。ND 減光鏡＋腳架拍流水絲絹感；苔蘚在微濕狀態下顏色最濃。",
+  keys:"奧入瀨 溪流 銚子大滝 阿修羅之流 苔"
+},
+{
+  id:"hakkoda", day:4, name:"八甲田纜車", jp:"八甲田ロープウェー", romaji:"Hakkōda Ropeway",
+  type:"高山", stay:"90 分", time:"11:30",
+  lat:40.6600, lng:140.8570,
+  wiki:["八甲田山","八甲田ロープウェー"],
+  desc:"十分鐘上到田茂萢岳山頂公園駅，標高 1,324 公尺。山頂有一圈約 30 分鐘的木棧道「ゴードライン」，繞行高層濕原與池塘。這是整趟行程唯一可能看到紅葉的地方——海拔 1,300 公尺以上約在九月下旬至十月上旬轉色。",
+  fields:[
+    ["票價","來回 成人 ¥2,000（單程 ¥1,250）"],
+    ["運行","09:00–16:20，每 15–20 分一班"],
+    ["溫度","山頂比平地低約 8°C，九月底約 5–12°C"],
+    ["停車","山麓駅有免費停車場"]
+  ],
+  tip:"午後常起雲，中午前上山能見度最好。強風時會停駛，出發前查官網。",
+  photo:"山頂濕原的池塘倒影配遠方岩木山是招牌構圖。逆光時段注意曝光。",
+  keys:"八甲田 纜車 紅葉 濕原 高山"
+},
+{
+  id:"sukayu", day:4, name:"酸ヶ湯溫泉・千人風呂", jp:"酸ヶ湯温泉・ヒバ千人風呂", romaji:"Sukayu Onsen",
+  type:"溫泉", stay:"60 分", time:"13:30",
+  lat:40.6480, lng:140.8560,
+  wiki:["酸ヶ湯温泉","酸ヶ湯"],
+  desc:"日本三大祕湯之一，三百年歷史的湯治場。千人風呂是一整座青森檜木造的巨大浴場，沒有隔間、沒有蓮蓬頭，只有從地底湧出的強酸性硫黃泉。pH 值約 1.7，泡完皮膚會有明顯的緊繃感。",
+  fields:[
+    ["費用","純泡湯 成人 ¥1,000"],
+    ["時間","07:00–17:30（千人風呂設女性專用時段 08:00–09:00、20:00–21:00）"],
+    ["形式","千人風呂為混浴（有女性專用時段）；另設男女分浴的「玉の湯」"],
+    ["注意","強酸性泉，金屬飾品先取下；泡後建議沖淨"]
+  ],
+  tip:"這裡也有食堂可以解決午餐。從八甲田纜車開過來只要 15 分鐘。",
+  keys:"酸ヶ湯 千人風呂 祕湯 硫黃 混浴"
+},
+{
+  id:"hirosaki-park", day:4, name:"弘前公園・藤田記念庭園", jp:"弘前公園・藤田記念庭園", romaji:"Hirosaki Park",
+  type:"城跡・庭園", stay:"90 分", time:"16:30",
+  lat:40.6080, lng:140.4640,
+  wiki:["弘前公園","弘前城","藤田記念庭園"],
+  desc:"弘前城是東北現存唯一的江戶期天守，三重護城河與土壘完整保存。天守目前因石垣修復而移到本丸內側，反而變成能同時把天守與岩木山放進同一畫面的少見機會。藤田記念庭園在公園西側，是大正時期的江戶風池泉迴遊式庭園，分高台部與低地部，高台部可遠眺岩木山。",
+  fields:[
+    ["費用","弘前公園本丸 ¥320；藤田記念庭園 ¥320（共通券 ¥520）"],
+    ["時間","09:00–17:00"],
+    ["停車","市營津輕藩ねぷた村停車場等，約 ¥100／小時"],
+    ["晚餐","弘前是意外的法式料理之城，也可走津輕鄉土料理或蘋果派巡禮"]
+  ],
+  photo:"傍晚側光時護城河的水面倒影最好。岩木山方向朝西，日落時可拍山形剪影。",
+  keys:"弘前 城 天守 岩木山 藤田記念庭園 蘋果"
+},
+{
+  id:"senjojiki", day:5, name:"千疊敷海岸", jp:"千畳敷海岸", romaji:"Senjōjiki Coast",
+  type:"海岸", stay:"40 分", time:"09:00",
+  lat:40.6650, lng:140.1000,
+  wiki:["千畳敷海岸","深浦町"],
+  desc:"1792 年的地震讓海床一口氣隆起，形成這片平坦的岩棚。名稱來自津輕藩主曾在此鋪千張榻榻米宴客的傳說。退潮時可以直接走上岩盤，潮池裡看得到海藻與小生物；五能線的鐵軌就從岩棚後方通過，運氣好可以拍到列車。",
+  fields:[
+    ["費用","免費"],
+    ["停車","道路旁有免費停車場與廁所"],
+    ["潮汐","退潮時可走的範圍最大，出發前查當日潮汐"],
+    ["安全","岩面濕滑，靠海側浪大時勿接近"]
+  ],
+  photo:"岩棚的水平線條配上日本海，適合低角度長曝。上午順光；若改到傍晚則能拍夕陽。",
+  keys:"千疊敷 海岸 隆起 五能線 深浦"
+},
+{
+  id:"yukiaizaki", day:5, name:"行合崎・垂雪之松", jp:"行合崎・垂雪の松", romaji:"Yukiaizaki",
+  type:"海岸", stay:"30 分", time:"10:00",
+  lat:40.6320, lng:140.0470,
+  wiki:["深浦町"],
+  desc:"R101 沿線的海崖突出部，草原一路延伸到崖邊，下方是日本海的岩礁。夏天有大山蓮華，九月則是開闊的草坡與海。垂雪之松是附近一株被強風吹成傾斜姿態的老松，樹形本身就是地形與季風的紀錄。",
+  fields:[
+    ["費用","免費"],
+    ["停車","岬入口有小型停車場，車道略窄"],
+    ["步行","停車場到崖邊步行約 5 分鐘"]
+  ],
+  photo:"草坡與海的分界線是構圖主軸。風大，長曝需壓好腳架。",
+  keys:"行合崎 垂雪之松 海崖 R101 深浦"
+},
+{
+  id:"aoike", day:5, name:"十二湖・青池", jp:"十二湖・青池", romaji:"Jūniko / Aoike",
+  type:"湖泊・森林", stay:"90 分", time:"12:00",
+  lat:40.4109, lng:139.9296,
+  wiki:["十二湖","青池"],
+  desc:"世界自然遺產白神山地的西端，山毛櫸林中散布著 33 個湖沼。青池是其中最著名的一座——池水呈現近乎人工的鈷藍，成因至今沒有定論，可能與水中溶存物質對光的散射有關。水深約 9 公尺，沉在底部的山毛櫸倒木看得一清二楚。",
+  fields:[
+    ["停車","車子無法直接開到青池旁。導航設定「森の物産館キョロロ」；最近的大型停車場收費 ¥500，其餘小型停車場多為免費"],
+    ["散策路線","鶏頭場の池 → 青池 → 山毛櫸林 → 沸壺の池 → 落口の池，約 1 小時多"],
+    ["路況","步道有階梯與未鋪面泥濘段，需防滑鞋"],
+    ["費用","散策免費"]
+  ],
+  photo:"CPL 偏光鏡是成敗關鍵——沒有它只會拍到滿滿的天空反射。10:00–12:00 陽光直射水面時藍色最濃；若想要極致發色，可把千疊敷往後挪、先衝十二湖。",
+  keys:"十二湖 青池 白神山地 世界遺產 山毛櫸 CPL"
+},
+{
+  id:"furofushi", day:5, name:"黃金崎不老不死溫泉", jp:"黄金崎不老ふ死温泉", romaji:"Furofushi Onsen",
+  type:"溫泉・海岸", stay:"90 分", time:"15:00",
+  lat:40.5730, lng:139.9060,
+  wiki:["黄金崎不老ふ死温泉","深浦町"],
+  desc:"露天風呂就直接砌在日本海的岩岸上，海浪打在幾公尺外的岩石。泉水含鐵，接觸空氣後氧化成濃厚的黃褐色，與海水的顏色對比極強。海邊有男女分浴與混浴（女性可穿浴衣）兩池，天候不佳時關閉。",
+  fields:[
+    ["費用","純泡湯 成人 ¥900"],
+    ["時間","純泡湯 08:00–16:00（海邊露天風呂日落後關閉）"],
+    ["注意","浪大或強風時海邊露天風呂會停用，館內另有展望大浴場"],
+    ["停車","免費停車場"]
+  ],
+  tip:"日落時段是最經典的畫面，但純泡湯時間到 16:00 為止；想在湯池裡看夕陽必須住宿。",
+  keys:"不老不死 溫泉 露天 日本海 黃金崎"
+},
+{
+  id:"fukaura", day:5, name:"深浦・日本海日落", jp:"深浦町", romaji:"Fukaura Sunset",
+  type:"海岸", stay:"40 分", time:"17:00",
+  lat:40.6470, lng:139.9190,
+  wiki:["深浦町"],
+  desc:"整段 R101 都面向正西方的日本海，沒有任何陸地遮擋，是本州少數能看到太陽直接沉入海平面的海岸線之一。深浦漁港、艫作崎燈塔、行合崎都是可停的點——不需要特別找地方，看到光線對了就靠邊停。",
+  fields:[
+    ["日落時間","九月底約 17:20"],
+    ["費用","免費"],
+    ["停車","沿線多處道の駅與展望停車空間"],
+    ["之後","往秋田市還有約 2 小時車程，夜間沿海路段彎多、路燈少"]
+  ],
+  photo:"海面高反差，用漸層 ND 或包圍曝光。日落後 20 分的藍調時刻別急著收機。",
+  keys:"深浦 日落 夕陽 日本海 R101"
+},
+{
+  id:"masuda", day:6, name:"増田町・內藏の町並", jp:"増田町・内蔵", romaji:"Masuda Uchigura",
+  type:"町並", stay:"75 分", time:"10:30",
+  lat:39.1560, lng:140.5470,
+  wiki:["増田町","横手市"],
+  desc:"重要傳統建造物群保存地區。從街上看只是一排樸素的商家，但每戶主屋深處都藏著一座包在建築內部的「內藏」——為了抵禦豪雪，把倉庫整個蓋進屋內，有些還鋪著漆黑發亮的磨き土壁。這種形式在日本幾乎只有這裡成群保存下來，目前有十餘戶開放參觀。",
+  fields:[
+    ["費用","部分需 ¥200–400，亦有免費開放戶"],
+    ["時間","多數 09:00–16:00；週三多為公休，出發前確認"],
+    ["停車","町並中心「蔵の駅」有免費停車場"],
+    ["午餐","往横手市區約 20 分，橫手炒麵（横手やきそば）是在地招牌"]
+  ],
+  tip:"這一站是因為 JX863 起飛時間較晚（17:20）才排得下。若當天路況不佳或想保守，10:30 從秋田直接南下，13:00 前就到機場。",
+  photo:"內藏是室內空間，光線暗、反差大。磨き土壁的黑色漆面在側光下最能表現質感。",
+  keys:"増田 內藏 重伝建 横手 炒麵"
+},
+{
+  id:"senshu-park", day:6, name:"千秋公園", jp:"千秋公園・久保田城跡", romaji:"Senshū Park",
+  type:"城跡", stay:"40 分", time:"08:00",
+  lat:39.7210, lng:140.1080,
+  wiki:["千秋公園","久保田城"],
+  desc:"久保田城的城跡，秋田藩佐竹氏的居城。這座城沒有天守也沒有石垣，只用土壘與堀構成防禦，在近世城郭中相當少見。現在復原了御隅櫓與表門，從本丸高處可以俯瞰秋田市區。回程日的最後一站，散步 40 分鐘剛好。",
+  fields:[
+    ["費用","公園免費；御隅櫓 ¥100"],
+    ["時間","御隅櫓 09:00–16:30"],
+    ["停車","周邊收費停車場"],
+    ["之後","加走増田町：秋田→増田 90 km／1:30；増田→仙台空港 210 km／2:40"]
+  ],
+  tip:"回程 JX863 17:20 起飛，15:20 前完成還車最安全。還車前記得加滿油並留收據。",
+  keys:"千秋公園 久保田城 秋田 佐竹"
+}
+];
+
+const DAYS = {
+  1:{label:"D1",date:"09.22 二",route:"仙台空港 → 松島"},
+  2:{label:"D2",date:"09.23 三",route:"松島 → 平泉 → 田澤湖"},
+  3:{label:"D3",date:"09.24 四",route:"田澤湖 → 角館 → 十和田湖"},
+  4:{label:"D4",date:"09.25 五",route:"奧入瀨 → 八甲田 → 弘前"},
+  5:{label:"D5",date:"09.26 六",route:"弘前 → 十二湖 → 秋田"},
+  6:{label:"D6",date:"09.27 日",route:"秋田 → 増田町 → 仙台空港"}
+};
+
+
+/* ── 分類圖示（取不到照片時的後備） ── */
+const ICON={
+ "湖泊":'<path d="M8 40c8-6 14 4 22-2s16 2 22-4"/><path d="M8 50c8-6 14 4 22-2s16 2 22-4"/><circle cx="46" cy="18" r="7"/>',
+ "湖泊・森林":'<path d="M6 46c8-6 16 4 24-2s18 2 26-4"/><path d="M20 40l8-16 8 16z"/><path d="M38 40l7-13 7 13z"/>',
+ "溪流・森林":'<path d="M14 8v14M14 22l-6 6M14 22l6 6"/><path d="M6 44c8-5 14 3 22-2s16 3 24-3"/><path d="M6 54c8-5 14 3 22-2s16 3 24-3"/>',
+ "海岸":'<path d="M4 40h56"/><path d="M4 50c8-5 14 3 22-2s16 3 26-3"/><path d="M18 40l10-16 10 16z"/>',
+ "展望":'<path d="M32 10v44"/><path d="M32 14l18 7-18 7z"/><path d="M20 54h24"/>',
+ "高山":'<path d="M6 48l16-28 10 17 6-9 20 20z"/><path d="M18 34h10"/>',
+ "溫泉":'<path d="M12 44h40v6a10 10 0 01-10 10H22a10 10 0 01-10-10z"/><path d="M24 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "溫泉・住宿":'<path d="M12 44h40v6a10 10 0 01-10 10H22a10 10 0 01-10-10z"/><path d="M24 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "溫泉・海岸":'<path d="M8 46c8-5 14 3 22-2s18 3 26-3"/><path d="M22 34c0-6-6-6-6-12s6-6 6-12"/><path d="M36 34c0-6-6-6-6-12s6-6 6-12"/>',
+ "古蹟":'<path d="M10 26L32 12l22 14"/><path d="M14 26v26M50 26v26M10 52h44"/><path d="M26 52V38h12v14"/>',
+ "世界遺產":'<path d="M10 26L32 12l22 14"/><path d="M14 26v26M50 26v26M10 52h44"/><path d="M26 52V38h12v14"/>',
+ "庭園":'<path d="M6 46c10-8 20 2 30-4s16 0 22-4"/><circle cx="20" cy="24" r="8"/><path d="M20 32v14"/><path d="M44 20v26"/>',
+ "町並":'<path d="M8 52V28l10-8 10 8v24"/><path d="M32 52V34l10-7 10 7v18"/><path d="M8 52h48"/>',
+ "城跡":'<path d="M10 52V22h6v-6h6v6h8v-6h6v6h6v-6h6v6h6v30z"/><path d="M6 52h52"/>',
+ "城跡・庭園":'<path d="M10 52V22h6v-6h6v6h8v-6h6v6h6v-6h6v6h6v30z"/><path d="M6 52h52"/>',
+ "交通":'<path d="M12 40h40v10H12z"/><circle cx="20" cy="52" r="4"/><circle cx="44" cy="52" r="4"/><path d="M16 40l6-14h20l6 14"/>'
+};
+const fallbackIcon=t=>ICON[t]||ICON["展望"];
+
+const listEl=document.getElementById('list');
+const chipsEl=document.getElementById('chips');
+const countEl=document.getElementById('count');
+const qEl=document.getElementById('q');
+let filterDay='all', query='';
+
+/* ── 建立日期篩選 chips ── */
+const days=[...new Set(SPOTS.map(s=>s.day))].sort((a,b)=>a-b);
+const mkChip=(v,label,title)=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.dataset.day=v; b.textContent=label;
+  b.setAttribute('aria-pressed', v===filterDay); if(title) b.title=title;
+  b.addEventListener('click',()=>{filterDay=v;render();});
+  return b;
+};
+chipsEl.appendChild(mkChip('all','全部'));
+days.forEach(d=>chipsEl.appendChild(mkChip(String(d),DAYS[d].label,DAYS[d].date+'　'+DAYS[d].route)));
+
+qEl.addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render();});
+
+/* ── 渲染 ── */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function cardHTML(s){
+  const gmap=`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+  const amap=`https://maps.apple.com/?ll=${s.lat},${s.lng}&q=${encodeURIComponent(s.name)}`;
+  const sv=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${s.lat},${s.lng}`;
+  const rows=(s.fields||[]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${v}</dd>`).join('');
+  const tip=s.tip?`<p class="note"><span class="tag">NOTE</span>${s.tip}</p>`:'';
+  const pho=s.photo?`<p class="note cam"><span class="tag">PHOTO</span>${s.photo}</p>`:'';
+  return `
+  <article class="spot" id="sp-${s.id}" data-id="${s.id}" data-day="${s.day}">
+    <div class="spot-top">
+      <figure class="figure" data-wiki='${esc(JSON.stringify(s.wiki||[]))}'>
+        <div class="ph"><svg viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">${fallbackIcon(s.type)}</svg></div>
+      </figure>
+      <div class="head">
+        <div class="ln1"><h3>${esc(s.name)}</h3><span class="jp">${esc(s.jp)}　${esc(s.romaji)}</span></div>
+        <div class="meta">
+          <span class="tg t">${esc(s.type)}</span>
+          <span class="tg s">停留 ${esc(s.stay)}</span>
+          <span class="tg">${DAYS[s.day].label} · ${esc(s.time)}</span>
+        </div>
+        <p class="desc">${s.desc}</p>
+      </div>
+    </div>
+    <div class="body hide" id="bd-${s.id}">
+      <dl class="f">${rows}</dl>
+      ${tip}${pho}
+    </div>
+    <div class="acts bar">
+      <button class="btn more" aria-expanded="false" aria-controls="bd-${s.id}">展開詳情</button>
+      <span class="coord">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span>
+      <a class="btn" href="${gmap}" target="_blank" rel="noopener">Google 地圖</a>
+      <a class="btn" href="${amap}" target="_blank" rel="noopener">Apple 地圖</a>
+      <a class="btn" href="${sv}" target="_blank" rel="noopener">街景</a>
+    </div>
+  </article>`;
+}
+
+function render(){
+  [...chipsEl.children].forEach(c=>c.setAttribute('aria-pressed',c.dataset.day===filterDay));
+  const shown=SPOTS.slice().sort((a,b)=>a.day-b.day||a.time.localeCompare(b.time)).filter(s=>{
+    if(filterDay!=='all' && String(s.day)!==filterDay) return false;
+    if(!query) return true;
+    const hay=(s.name+s.jp+s.romaji+s.type+s.desc+(s.keys||'')+(s.tip||'')+(s.photo||'')).toLowerCase();
+    return hay.includes(query);
+  });
+  countEl.textContent=`${shown.length} / ${SPOTS.length} 個景點`;
+  if(!shown.length){
+    listEl.innerHTML=`<div class="empty">沒有符合的景點。試試清空搜尋或改選其他日期。</div>`;
+  }else{
+    let html='',cur=null;
+    shown.forEach(s=>{
+      if(s.day!==cur){cur=s.day;
+        html+=`<div class="dayhead"><span class="n">${DAYS[cur].label}</span>
+          <span class="r">${DAYS[cur].route}</span>
+          <span class="d">${DAYS[cur].date}</span><span class="line"></span></div>`;}
+      html+=cardHTML(s);
+    });
+    listEl.innerHTML=html;
+  }
+  wire(); loadPhotos();
+  const ids=new Set(shown.map(s=>s.id));
+  document.querySelectorAll('.m-pin').forEach(p=>p.classList.toggle('dim',!ids.has(p.dataset.id)));
+}
+
+/* ── 互動 ── */
+function wire(){
+  listEl.querySelectorAll('.btn.more').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const card=b.closest('.spot');
+      const open=card.querySelector('.body').classList.toggle('hide')===false;
+      b.setAttribute('aria-expanded',open);
+      b.textContent=open?'收合詳情':'展開詳情';
+    });
+  });
+  listEl.querySelectorAll('.spot').forEach(c=>{
+    c.addEventListener('mouseenter',()=>markPin(c.dataset.id,true));
+    c.addEventListener('mouseleave',()=>markPin(c.dataset.id,false));
+  });
+}
+function markPin(id,on){
+  const p=document.querySelector(`.m-pin[data-id="${id}"]`);
+  if(p) p.classList.toggle('on',on);
+}
+function goTo(id){
+  const card=document.getElementById('sp-'+id);
+  if(!card){ // 該景點被篩掉時先解除篩選
+    filterDay='all'; query=''; qEl.value=''; render();
+    requestAnimationFrame(()=>goTo(id)); return;
+  }
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.spot.hl').forEach(x=>x.classList.remove('hl'));
+  card.classList.add('hl');
+  setTimeout(()=>card.classList.remove('hl'),2600);
+}
+document.querySelectorAll('.m-pin').forEach(p=>{
+  p.addEventListener('click',()=>goTo(p.dataset.id));
+  p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goTo(p.dataset.id);}});
+});
+
+/* ── 照片：向 Wikipedia 取代表圖（雙端點，適用 file:// 的 null origin） ── */
+const photoCache={};
+async function viaRest(title){
+  const u=`https://ja.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+  const r=await fetch(u); if(!r.ok) throw 0;
+  const j=await r.json();
+  const t=j.thumbnail&&j.thumbnail.source; if(!t) throw 0;
+  // 不可自行改寫寬度：Wikimedia 只供應 API 實際產生的那個尺寸，
+  // 換成 /900px- 會拿到 400（縮圖服務不再即時產生任意寬度）
+  return {src:t,
+          page:(j.content_urls&&j.content_urls.desktop.page)||u, title:j.title};
+}
+async function viaAction(title){
+  const u=`https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*`
+        +`&prop=pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=900`
+        +`&redirects=1&titles=${encodeURIComponent(title)}`;
+  const r=await fetch(u); if(!r.ok) throw 0;
+  const j=await r.json();
+  const pages=j.query&&j.query.pages||{};
+  for(const k in pages){
+    const pg=pages[k];
+    if(pg.thumbnail&&pg.thumbnail.source)
+      return {src:pg.thumbnail.source,page:pg.fullurl||('https://ja.wikipedia.org/wiki/'+encodeURIComponent(title)),title:pg.title};
+  }
+  throw 0;
+}
+async function fetchWiki(title){
+  if(title in photoCache) return photoCache[title];
+  let out=null;
+  // Action API 先試：它能用 pithumbsize 指定尺寸，拿到真正的高解析度縮圖。
+  // REST 當後備（只給固定小圖，但在 file:// 的 null origin 下比較可靠）
+  try{ out=await viaAction(title); }
+  catch(e){ try{ out=await viaRest(title); }catch(e2){ out=null; } }
+  photoCache[title]=out; return out;
+}
+function attach(fig,p){
+  const img=new Image();
+  // crossOrigin 必須在 src 之前設定。Wikimedia 圖床回 Access-Control-Allow-Origin: *，
+  // 走 CORS 才會拿到「可以寫進 Cache」的回應；不設就是 opaque，Service Worker
+  // 的 cache.put() 存不進去（離線照片會整批失效，而且首次請求會卡住不回應）
+  img.crossOrigin='anonymous';
+  // 不可加 loading='lazy'：這個 img 還沒進 DOM，lazy 會讓瀏覽器永遠不開始載入，
+  // 而插入 DOM 又要等 onload——互相卡死，22 張照片會全部不出現。
+  // 何況離線快取本來就要在第一次連網時把圖全抓下來，本來就不該延後。
+  img.alt=p.title; img.decoding='async'; img.referrerPolicy='no-referrer';
+  img.onload=()=>{
+    fig.querySelector('.ph')&&fig.querySelector('.ph').remove();
+    fig.prepend(img);
+    requestAnimationFrame(()=>img.classList.add('in'));
+    const cap=document.createElement('figcaption');
+    cap.innerHTML=`照片：<a href="${p.page}" target="_blank" rel="noopener">Wikipedia／${esc(p.title)}</a>`;
+    fig.appendChild(cap);
+  };
+  img.src=p.src;
+}
+async function loadPhotos(){
+  let ok=0;
+  const figs=[...document.querySelectorAll('.figure')];
+  await Promise.all(figs.map(async fig=>{
+    let cands=[]; try{ cands=JSON.parse(fig.dataset.wiki); }catch(e){}
+    for(const t of cands){
+      const p=await fetchWiki(t);
+      if(p){ attach(fig,p); ok++; return; }
+    }
+  }));
+  const rb=document.getElementById('reload');
+  if(rb) rb.hidden = ok>0 || figs.length===0;
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='reload'){ for(const k in photoCache) delete photoCache[k]; loadPhotos(); }
+});
+
+render();
+</script>
+</body>
+</html>
