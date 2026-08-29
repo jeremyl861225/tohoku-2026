@@ -56,6 +56,28 @@ a{color:var(--sign)}
 
 /* ── 地圖 ── */
 svg.map{width:100%;height:auto;display:block;border:1px solid var(--rule2);border-radius:2px}
+.leg{margin:0 0 14px 0;border-left:3px solid var(--aoike);background:#E8EFF3;
+  border-radius:0 3px 3px 0}
+.leg a{display:flex;align-items:center;gap:9px;padding:8px 14px;
+  font-family:var(--mono);font-size:12px;color:var(--ink2);text-decoration:none}
+.leg a:hover{background:#DBE6ED}
+.leg.same{border-left-color:#B6C4BF;background:#EFF2F1}
+.l-ico{color:var(--aoike);font-weight:700;font-size:13px}
+.leg.same .l-ico{color:#9AAAA5}
+.l-approx{color:var(--ink3);font-size:10px;border:1px solid #C3D0D6;border-radius:2px;padding:0 3px;margin-right:5px}
+.l-go{margin-left:auto;color:var(--aoike);font-size:11px;white-space:nowrap}
+.seq{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+  border-radius:50%;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;
+  font-weight:700;flex:0 0 21px;margin-right:8px}
+.spot.opt .seq{background:#93A6AE}
+.tbd{background:#F3EEE2;border-left:3px solid var(--ochre)}
+.m-seq{fill:#fff;font-size:9px;font-weight:700;text-anchor:middle;font-family:var(--mono)}
+.m-dot-seq{fill:var(--ink);stroke:#fff;stroke-width:1.8}
+.m-dot-seq.wide{r:12}
+.m-seq{paint-order:stroke}
+.m-day{display:none}
+.m-day.on{display:inline}
+.m-all.off{display:none}
 .m-sea{fill:#DEE7EB}
 .m-land{fill:#F8FAF9;stroke:#B6C4BF;stroke-width:.7;stroke-linejoin:round}
 .m-lake{fill:#CFDEE6;stroke:#A9BFC9;stroke-width:.6}
@@ -261,38 +283,40 @@ qEl.addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();rende
 /* ── 渲染 ── */
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-function cardHTML(s){
-  // 用「地名」而不是座標查詢，點下去才會開出該景點的正式頁面（評論、營業時間、照片）。
-  // gq 是逐一挑過並實測過的查詢字串，多數帶地區限定詞——「滝の湯」「五大堂」「滝見台」
-  // 這類名稱全日本一堆同名，只給名稱會查到別的縣去。座標仍保留在卡片上供車機輸入。
-  // gq 只在「已實測會解析到正確 POI」的景點才有。沒有 gq 就退回座標——
-  // Google Maps 查不到地名時會退回「使用者所在地的同類搜尋」，實測過
-  // 「山湖台展望所」會指到台北、「大峠トンネル」指到 463 km 外，寧可用座標。
-  const gmap=s.gq
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.gq)}`
+function cardHTML(s,seq){
+  // 只用「地名」查詢，點下去會開出該景點的正式頁面（評論、營業時間、照片）。
+  // gq 是逐一挑過並實測過的字串；沒有 gq 的才退回座標——Google Maps 查不到地名時
+  // 會退回「使用者所在地的同類搜尋」，實測過會指到台北或 463 km 外。
+  // gurl = 使用者直接指定的 Google 地點（帶 cid，落點百分之百正確），優先用它
+  const gmap=s.gurl ? s.gurl
+    : s.gq ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.gq)}`
     : `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
-  const amap=`https://maps.apple.com/?ll=${s.lat},${s.lng}&q=${encodeURIComponent(s.gq||s.jp||s.name)}`;
-  const sv=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${s.lat},${s.lng}`;
   const rows=(s.fields||[]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${v}</dd>`).join('');
   const tip=s.tip?`<p class="note"><span class="tag">NOTE</span>${s.tip}</p>`:'';
   const pho=s.photo?`<p class="note cam"><span class="tag">PHOTO</span>${s.photo}</p>`:'';
+  const cls='spot'+(s.opt?' opt':'')+(s.tbd?' tbd':'');
+  const kind=/^dinner-/.test(s.id)?'dinner':'spot';
+  // 晚餐卡不參與「卡-車程-卡」的鏈：它與前一站同區，走過去就到，沒有車程可言
+  const attrs=`data-kind="${kind}" data-seq="${seq}"`
+    +(kind==='dinner'?' data-noleg="1"':'')+(s.tbd?' data-tbd="1"':'')+(s.nomap?' data-nopin="1"':'');
   return `
-  <article class="spot" id="sp-${s.id}" data-id="${s.id}" data-day="${s.day}">
+  <article class="${cls}" id="sp-${s.id}" data-id="${s.id}" data-day="${s.day}" ${attrs}>
     <div class="spot-top">
-      <figure class="figure" data-wiki='${esc(JSON.stringify(s.wiki||[]))}'>
-        <div class="ph"><svg viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">${fallbackIcon(s.type)}</svg></div>
-      </figure>
       <div class="head">
-        <div class="ln1"><h3>${esc(s.name)}</h3><span class="jp">${esc(s.jp)}　${esc(s.romaji)}</span></div>
+        <div class="ln1"><span class="seq">${seq}</span><h3>${esc(s.name)}</h3><span class="jp">${esc(s.jp)}　${esc(s.romaji)}</span></div>
         <div class="meta">
           <span class="tg t">${esc(s.type)}</span>
           <span class="tg s">停留 ${esc(s.stay)}</span>
           <span class="tg">${DAYS[s.day].label} · ${esc(s.time)}</span>
+          ${s.opt?'<span class="tg">選配</span>':''}
         </div>
         <p class="desc">${s.desc}</p>
       </div>
     </div>
     <div class="body hide" id="bd-${s.id}">
+      <figure class="figure" data-wiki='${esc(JSON.stringify(s.wiki||[]))}'>
+        <div class="ph"><svg viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">${fallbackIcon(s.type)}</svg></div>
+      </figure>
       <dl class="f">${rows}</dl>
       ${tip}${pho}
     </div>
@@ -300,10 +324,24 @@ function cardHTML(s){
       <button class="btn more" aria-expanded="false" aria-controls="bd-${s.id}">展開詳情</button>
       <span class="coord">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span>
       <a class="btn" href="${gmap}" target="_blank" rel="noopener">Google 地圖</a>
-      <a class="btn" href="${amap}" target="_blank" rel="noopener">Apple 地圖</a>
-      <a class="btn" href="${sv}" target="_blank" rel="noopener">街景</a>
     </div>
   </article>`;
+}
+
+// 兩張行程卡之間的車程。起點與終點一律用「地名」帶進 Google 路線，不用座標。
+// 距離與時間是靜態資料（寫在 guide_data.js），不在瀏覽器端呼叫任何 API——離線要能用。
+function legHTML(a,b){
+  const L=b.leg; if(!L||L.src==='same') return '';
+  const mode=L.src==='walk'?'walking':'driving';
+  const o=a.gq||a.jp||a.name, d=b.gq||b.jp||b.name;
+  const url=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}`
+          +`&destination=${encodeURIComponent(d)}&travelmode=${mode}`;
+  const ap=L.src==='osrm'?'<span class="l-approx">約</span>':'';
+  return `<div class="leg" data-day="${b.day}" data-from="${a.id}" data-to="${b.id}">
+    <a href="${url}" target="_blank" rel="noopener" aria-label="${esc(o)} 到 ${esc(d)} 的路線">
+      <span class="l-ico">↓</span>
+      <span class="l-txt">${ap}<span class="leg-time">${esc(L.t)}</span>・<span class="leg-dist">${esc(L.d)}</span></span>
+      <span class="l-go">${esc(o)} → ${esc(d)} ↗</span></a></div>`;
 }
 
 function render(){
@@ -318,21 +356,109 @@ function render(){
   if(!shown.length){
     listEl.innerHTML=`<div class="empty">沒有符合的景點。試試清空搜尋或改選其他日期。</div>`;
   }else{
-    let html='',cur=null;
+    let html='',cur=null,seq=0,prev=null;
+    // 搜尋狀態下不畫路段——過濾後的相鄰兩張卡未必真的相鄰
+    const withLegs=!query;
     shown.forEach(s=>{
-      if(s.day!==cur){cur=s.day;
+      if(s.day!==cur){cur=s.day;seq=0;prev=null;
         html+=`<div class="dayhead"><span class="n">${DAYS[cur].label}</span>
           <span class="r">${DAYS[cur].route}</span>
           <span class="d">${DAYS[cur].date}</span><span class="line"></span></div>`;}
-      html+=cardHTML(s);
+      seq++;
+      if(withLegs&&prev) html+=legHTML(prev,s);
+      html+=cardHTML(s,seq);
+      prev=s;
     });
     listEl.innerHTML=html;
   }
-  // DEFER_PHOTOS 由 PWA 版設定：照片要等 Service Worker 接管後再抓，
-  // 否則第一次造訪會繞過離線快取。獨立的 guide.html 沒設這個旗標，照舊立即載。
-  wire(); if(!window.DEFER_PHOTOS) loadPhotos();
+  // DEFER_PHOTOS 由 PWA 版設定：**第一次**要等 Service Worker 接管後再抓照片，
+  // 否則會繞過離線快取。但之後每次重新渲染（切換日期、搜尋）都會重建空的圖框，
+  // 必須再抓一次——否則一按 D3 照片就全部消失。PHOTOS_READY 由那段 boot 設起。
+  wire(); if(!window.DEFER_PHOTOS||window.PHOTOS_READY) loadPhotos();
   const ids=new Set(shown.map(s=>s.id));
   document.querySelectorAll('.m-pin').forEach(p=>p.classList.toggle('dim',!ids.has(p.dataset.id)));
+  syncMap();
+}
+
+/* 選單一天時：地圖放大到當天的範圍，只顯示當天的路線與編號標記 */
+function syncMap(){
+  const svg=document.querySelector('svg.map');
+  if(!svg) return;
+  let boxes={};
+  try{ boxes=JSON.parse(svg.dataset.daybox||'{}'); }catch(e){}
+  const all=svg.querySelector('.m-all');
+  svg.querySelectorAll('.m-day').forEach(g=>g.classList.toggle('on',g.dataset.day===filterDay));
+  const fullW=parseFloat((svg.dataset.full||'0 0 396 402').split(' ')[2])||396;
+  if(filterDay==='all'||!boxes[filterDay]){
+    if(svg.dataset.full) svg.setAttribute('viewBox',svg.dataset.full);
+    if(all) all.classList.remove('off');
+  }else{
+    const b=boxes[filterDay];
+    svg.setAttribute('viewBox',b.join(' '));
+    if(all) all.classList.add('off');
+    // viewBox 變小 = 畫面放大 k 倍；標記要反向縮 1/k，否則字與圓點會跟著放大成一團
+    const k=fullW/b[2];
+    svg.querySelectorAll(`.m-day[data-day="${filterDay}"] .m-mk`).forEach(g=>{
+      g.setAttribute('transform',`translate(${g.dataset.x},${g.dataset.y}) scale(${(1/k).toFixed(4)})`);
+    });
+    layoutLabels(filterDay);
+  }
+}
+
+/* 標籤避讓：用實際量到的螢幕矩形去試位置。建置期估不準渲染尺寸，只能在這裡做。
+   八個候選位置都放不下時就隱藏標籤——編號還在，名稱在下面的行程卡看得到。 */
+function layoutLabels(day){
+  const svg=document.querySelector('svg.map'); if(!svg) return;
+  let mks=[...svg.querySelectorAll(`.m-day[data-day="${day}"] .m-mk`)];
+  const hit=(a,b)=>a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom;
+
+  // 先還原上一次的併點結果
+  mks.forEach(g=>{
+    g.style.display='';
+    const t=g.querySelector('.m-seq');
+    if(t){ if(!t.dataset.orig) t.dataset.orig=t.textContent; t.textContent=t.dataset.orig; }
+    g.querySelector('.m-dot-seq').classList.remove('wide');
+    const l=g.querySelector('.m-lbl');
+    if(l){ if(!l.dataset.orig) l.dataset.orig=l.textContent; l.textContent=l.dataset.orig; }
+  });
+
+  // 靠太近的點併成一個，標示編號範圍——例如 D2 的松島四站在同一公里內，
+  // 而當天跨距 100 km，不併的話圓點會整團疊住、編號根本看不到
+  const groups=[];
+  mks.forEach(g=>{
+    const c=g.querySelector('.m-dot-seq').getBoundingClientRect();
+    const cx=c.x+c.width/2, cy=c.y+c.height/2;
+    const near=groups.find(gr=>Math.hypot(gr.cx-cx,gr.cy-cy)<22);
+    if(near) near.items.push(g); else groups.push({cx,cy,items:[g]});
+  });
+  groups.forEach(gr=>{
+    if(gr.items.length<2) return;
+    const nums=gr.items.map(g=>+g.querySelector('.m-seq').dataset.orig).sort((a,b)=>a-b);
+    // 連號才用範圍；不連號要列舉，否則「1–3」會讓人以為含 2，但 2 可能在別群
+    const contig=nums.every((n,i)=>i===0||n===nums[i-1]+1);
+    const head=gr.items[0];
+    head.querySelector('.m-seq').textContent=
+      contig ? nums[0]+'–'+nums[nums.length-1] : nums.join(',');
+    head.querySelector('.m-dot-seq').classList.add('wide');
+    const hl=head.querySelector('.m-lbl');
+    if(hl) hl.textContent=hl.dataset.orig+`（${gr.items.length} 站）`;
+    gr.items.slice(1).forEach(g=>g.style.display='none');
+  });
+  mks=mks.filter(g=>g.style.display!=='none');
+  const cands=[[11,4,'start'],[-11,4,'end'],[11,-12,'start'],[-11,-12,'end'],
+               [11,20,'start'],[-11,20,'end'],[0,-17,'middle'],[0,27,'middle']];
+  const placed=mks.map(g=>g.querySelector('.m-dot-seq').getBoundingClientRect());
+  mks.forEach(g=>{
+    const t=g.querySelector('.m-lbl'); if(!t) return;
+    t.style.display='';
+    let ok=false;
+    for(const [dx,dy,anc] of cands){
+      t.setAttribute('x',dx); t.setAttribute('y',dy); t.setAttribute('text-anchor',anc);
+      const b=t.getBoundingClientRect();
+      if(!placed.some(p=>hit(b,p))){ placed.push(b); ok=true; break; }
+    }
+    if(!ok) t.style.display='none';
+  });
 }
 
 /* ── 互動 ── */

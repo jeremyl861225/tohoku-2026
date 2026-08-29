@@ -50,6 +50,7 @@ render();
       }
     }catch(e){}
   }
+  window.PHOTOS_READY=true;   // 之後每次 render() 都可以自己補載
   loadPhotos();
 })();
 const bar=document.getElementById('offbar');

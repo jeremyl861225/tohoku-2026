@@ -9,6 +9,7 @@
 """
 import json
 import math
+import re
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -93,24 +94,92 @@ PTS = [
 PREF = [("宮城縣", 141.20, 38.62), ("山形縣", 139.95, 38.65), ("福島縣", 140.75, 37.35)]
 
 
+
+# ── 從 guide_data.js 讀景點（避免地圖與資料分歧）───────────────
+def load_spots():
+    src = (HERE.parent / "guide_data.js").read_text(encoding="utf-8")
+    out = []
+    for b in re.findall(r"\{(?:[^{}]|\{[^{}]*\}|\[[^\]]*\])*?\}", src, re.S):
+        gid = re.search(r'\bid:"([^"]+)"', b)
+        day = re.search(r"\bday:\s*(\d+)", b)
+        lat = re.search(r"\blat:\s*(-?[\d.]+)", b)
+        lng = re.search(r"\blng:\s*(-?[\d.]+)", b)
+        tim = re.search(r'\btime:"([^"]*)"', b)
+        nam = re.search(r'\bname:"([^"]*)"', b)
+        if not (gid and day and lat and lng):
+            continue
+        out.append(dict(id=gid.group(1), day=int(day.group(1)),
+                        lat=float(lat.group(1)), lng=float(lng.group(1)),
+                        time=tim.group(1) if tim else "",
+                        name=nam.group(1) if nam else "",
+                        nomap=("nomap:true" in b)))
+    out.sort(key=lambda x: (x["day"], x["time"]))
+    return out
+
+
+def day_groups(a):
+    """每日一個 <g>：當天路線 + 帶編號的標記；同時回傳每日的 viewBox。"""
+    spots = load_spots()
+    boxes = {}
+    for d in range(1, 7):
+        allday = [x for x in spots if x["day"] == d]
+        pts = [x for x in allday if not x["nomap"]]
+        if not pts:
+            continue
+        a(f'<g class="m-day" data-day="{d}">')
+        if len(pts) > 1:
+            dd = "M" + "L".join("%.1f,%.1f" % prj(x["lng"], x["lat"]) for x in pts)
+            a(f'<path class="m-route-case" data-day="{d}" vector-effect="non-scaling-stroke" d="{dd}"/>')
+            a(f'<path class="m-route" data-day="{d}" vector-effect="non-scaling-stroke" d="{dd}"/>')
+        xs, ys = [], []
+        for i, x in enumerate(allday):          # 編號含晚餐卡，與行程卡一致
+            if x["nomap"]:
+                continue
+            px, py = prj(x["lng"], x["lat"])
+            xs.append(px); ys.append(py)
+            # 子元素用相對座標，外層 translate；縮放時 JS 會補上 scale(1/k)
+            # 讓標記與標籤在任何縮放下都維持固定的螢幕尺寸
+            a(f'<g class="m-pin m-mk" data-id="{x["id"]}" data-day="{d}" data-x="{px:.1f}" data-y="{py:.1f}" '
+              f'transform="translate({px:.1f},{py:.1f})" tabindex="0" role="button" aria-label="{x["name"]}">')
+            a('<circle class="m-hit" cx="0" cy="0" r="15"/>')
+            a('<circle class="m-dot-seq" cx="0" cy="0" r="8"/>')
+            a(f'<text class="m-num m-seq" x="0" y="3.1">{i + 1}</text>')
+            a(f'<text class="m-lbl strong" x="11" y="4" text-anchor="start">{x["name"]}</text>')
+            a("</g>")
+        a("</g>")
+        pad = 34
+        x0, x1 = min(xs) - pad, max(xs) + pad
+        y0, y1 = min(ys) - pad, max(ys) + pad
+        # 維持與整體圖相同的長寬比，避免變形
+        ar = H / W
+        w, h = x1 - x0, y1 - y0
+        if h / w < ar:
+            nh = w * ar; y0 -= (nh - h) / 2; h = nh
+        else:
+            nw = h / ar; x0 -= (nw - w) / 2; w = nw
+        boxes[d] = [round(x0, 1), round(y0, 1), round(w, 1), round(h, 1)]
+    return boxes
+
+
 def build(interactive):
     pref = json.loads((HERE / "prefectures.json").read_text(encoding="utf-8"))
     s = []
     a = s.append
     label = "南東北環線路線圖"
-    a(f'<svg class="map" viewBox="0 0 {W:.0f} {H:.0f}" xmlns="http://www.w3.org/2000/svg" '
-      f'role="img" aria-label="{label}">')
+    box_holder = []
+    a('<<<SVGOPEN>>>')
     a(f'<rect x="0" y="0" width="{W:.0f}" height="{H:.0f}" class="m-sea"/>')
     a('<g class="m-land">')
     for rings in pref.values():
         for r in rings:
             d = ring_path(r)
             if d:
-                a(f'<path d="{d}"/>')
+                a(f'<path vector-effect="non-scaling-stroke" d="{d}"/>')
     a('</g>')
     for nm, lo, la in PREF:
         x, y = prj(lo, la)
         a(f'<text class="m-pref" x="{x:.1f}" y="{y:.1f}">{nm}</text>')
+    a('<g class="m-all">')
     a(f'<path class="m-route-case" d="{line_path(ROUTE)}"/>')
     a(f'<path class="m-route" d="{line_path(ROUTE)}"/>')
 
@@ -133,6 +202,10 @@ def build(interactive):
         a(f'<text class="{cls}" x="{x + dx:.1f}" y="{y + dy:.1f}" text-anchor="{anc}">{nm}</text>')
         a('</g>')
 
+    a('</g>')                       # /m-all
+    if interactive:
+        box_holder.append(day_groups(a))
+
     # 比例尺 50 km
     km = 50.0 / 111.32 / math.cos(math.radians(38.0))
     x0, y0 = prj(LON0 + 0.16, LAT0 + 0.14)
@@ -147,7 +220,11 @@ def build(interactive):
     a(f'<g class="m-north"><path d="M{nx},{ny - 13} L{nx + 5},{ny + 5} L{nx},{ny + 1} '
       f'L{nx - 5},{ny + 5} Z"/><text x="{nx}" y="{ny + 17}">N</text></g>')
     a('</svg>')
-    return "\n".join(s)
+    dbox = json.dumps(box_holder[0], separators=(",", ":")) if box_holder else "{}"
+    open_tag = (f'<svg class="map" viewBox="0 0 {W:.0f} {H:.0f}" '
+                f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{label}" '
+                f"data-full=\"0 0 {W:.0f} {H:.0f}\" data-daybox='{dbox}'>")
+    return "\n".join(s).replace('<<<SVGOPEN>>>', open_tag)
 
 
 if __name__ == "__main__":
