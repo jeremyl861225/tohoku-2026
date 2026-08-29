@@ -262,8 +262,16 @@ qEl.addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();rende
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 function cardHTML(s){
-  const gmap=`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
-  const amap=`https://maps.apple.com/?ll=${s.lat},${s.lng}&q=${encodeURIComponent(s.name)}`;
+  // 用「地名」而不是座標查詢，點下去才會開出該景點的正式頁面（評論、營業時間、照片）。
+  // gq 是逐一挑過並實測過的查詢字串，多數帶地區限定詞——「滝の湯」「五大堂」「滝見台」
+  // 這類名稱全日本一堆同名，只給名稱會查到別的縣去。座標仍保留在卡片上供車機輸入。
+  // gq 只在「已實測會解析到正確 POI」的景點才有。沒有 gq 就退回座標——
+  // Google Maps 查不到地名時會退回「使用者所在地的同類搜尋」，實測過
+  // 「山湖台展望所」會指到台北、「大峠トンネル」指到 463 km 外，寧可用座標。
+  const gmap=s.gq
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.gq)}`
+    : `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+  const amap=`https://maps.apple.com/?ll=${s.lat},${s.lng}&q=${encodeURIComponent(s.gq||s.jp||s.name)}`;
   const sv=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${s.lat},${s.lng}`;
   const rows=(s.fields||[]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${v}</dd>`).join('');
   const tip=s.tip?`<p class="note"><span class="tag">NOTE</span>${s.tip}</p>`:'';

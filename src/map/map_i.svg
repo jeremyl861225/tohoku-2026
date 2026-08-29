@@ -78,9 +78,9 @@
 <text class="m-lbl strong" x="219.8" y="188.9" text-anchor="start">遠刈田溫泉</text>
 </g>
 <g class="m-pin" data-id="okama" tabindex="0" role="button" aria-label="藏王御釜">
-<circle class="m-hit" cx="197.7" cy="176.7" r="15"/>
-<circle class="m-dot" cx="197.7" cy="176.7" r="4"/>
-<text class="m-lbl" x="187.7" y="170.7" text-anchor="end">藏王御釜</text>
+<circle class="m-hit" cx="197.9" cy="175.0" r="15"/>
+<circle class="m-dot" cx="197.9" cy="175.0" r="4"/>
+<text class="m-lbl" x="187.9" y="169.0" text-anchor="end">藏王御釜</text>
 </g>
 <g class="m-scale"><line x1="25.3" y1="374.3" x2="115.6" y2="374.3"/><line x1="25.3" y1="371.3" x2="25.3" y2="377.3"/><line x1="115.6" y1="371.3" x2="115.6" y2="377.3"/><text x="70.5" y="368.3">50 km</text></g>
 <g class="m-north"><path d="M370.0,13 L375.0,31 L370.0,27 L365.0,31 Z"/><text x="370.0" y="43">N</text></g>
