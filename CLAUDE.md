@@ -59,7 +59,7 @@ tohoku-2026/
 │   ├── roadbook.html      ← 行程書。地圖 SVG 內嵌在裡面
 │   ├── quickcard.html     ← 速查卡
 │   ├── guide_shell.html   ← 互動指南樣板，含 <!--MAP--> 與 //--DATA-- 佔位符
-│   ├── guide_data.js      ← 31 個景點的資料陣列（內容的主要來源）
+│   ├── guide_data.js      ← 30 個景點 + 6 張晚餐卡的資料陣列（內容的主要來源）
 │   └── map/
 │       ├── prefectures.json  ← 宮城・山形・福島縣界（已簡化，18 KB）
 │       ├── makemap.py        ← 一支腳本同時產出 map.svg 與 map_i.svg
@@ -146,8 +146,9 @@ python3 src/map/makemap.py && python3 build/build_guide.py && python3 build/buil
   romaji: "Ginzan Onsen",
   type: "溫泉・住宿",         // 決定無照片時的後備圖示，見 guide_shell.html 的 ICON 表
   stay: "住宿", time: "15:00",
-  lat: 38.5706, lng: 140.5305,   // 座標顯示與 Apple 地圖用
+  lat: 38.5706, lng: 140.5305,   // 座標顯示與地圖圖釘定位用
   gq: "銀山温泉",                 // Google 地圖查詢字串——見下面「地圖連結用 gq」
+  leg: { t:"30 分", d:"31.2 km", src:"osrm" },   // 「開到這張卡」的那段路，見下面
   wiki: ["銀山温泉"],             // 日文維基條目候選，依序嘗試取照片
   desc: "…",                     // 卡片正文
   fields: [["自駕","…"], …],      // 展開後的欄位表
@@ -156,7 +157,7 @@ python3 src/map/makemap.py && python3 build/build_guide.py && python3 build/buil
 }
 ```
 
-目前 **31 個景點、其中 12 個在地圖上有標記**（自然景觀 13 個，佔 42%）。`id` 必須與 `makemap.py` 的
+目前 **30 個景點 + 6 張晚餐卡、其中 12 個在地圖上有標記**（自然景觀 13 個，佔 42%）。`id` 必須與 `makemap.py` 的
 `PTS` 最後一欄對得上，否則點地圖不會跳轉。收尾時用這段檢查：
 
 ```bash
@@ -167,6 +168,26 @@ m = pathlib.Path("src/map/makemap.py").read_text(encoding="utf-8")
 print(set(re.findall(r',\s*"([a-z0-9-]+)"\),', m)) - set(re.findall(r'\bid:"([^"]+)"', d)) or "✓ 全部對得上")
 PY
 ```
+
+## `leg`＝開到這張卡的那一段路
+
+`leg` 掛在**終點**那張卡上，不是起點。`t` 時間、`d` 距離、`src` 來源
+（`google` 實測／`osrm` 估算，會顯示「約」／`walk` 步行／`same` 同區不畫）。
+
+每天第一張卡的 `leg` 另外要帶兩個欄位，因為它前面沒有卡可以當起點：
+
+```js
+leg:{ t:"57 分", d:"49.8 km", src:"google",
+      from:"銀山温泉",          // Google 路線的起點地名（住宿地）
+      stay:"銀山溫泉旅館" }     // 卡上那顆徽章顯示的字
+```
+
+沒有 `from` 的話，那天第一段就不會畫出來——**這正是 2026-08-29 修掉的那個 bug**：
+`render()` 在日界把 `prev` 清成 `null`，於是每天早上從飯店出發的那段路整個消失。
+渲染出來的是 `.leg.leg-day`（虛線左框、`data-from="lodging"`）。
+D1 沒有這一段，那天是落地後直接出發。
+
+**這些車程本來就含在 `ITINERARY.md` 的每日總計裡**，不是額外加上去的。
 
 **地圖標記不要放得太近。** 鳴子峽與鳴子溫泉只差 4 km，在 396 px 寬的地圖上
 只差約 5 px，兩個標籤會疊在一起——所以鳴子峽只做成景點卡、不給圖釘。

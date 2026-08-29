@@ -58,14 +58,21 @@ a{color:var(--sign)}
 svg.map{width:100%;height:auto;display:block;border:1px solid var(--rule2);border-radius:2px}
 .leg{margin:0 0 14px 0;border-left:3px solid var(--aoike);background:#E8EFF3;
   border-radius:0 3px 3px 0}
-.leg a{display:flex;align-items:center;gap:9px;padding:8px 14px;
+/* 手機寬度放不下時，讓「起點 → 終點」整條掉到第二行，而不是把時間距離折成兩截 */
+.leg a{display:flex;flex-wrap:wrap;align-items:center;gap:3px 9px;padding:8px 14px;
   font-family:var(--mono);font-size:12px;color:var(--ink2);text-decoration:none}
+.l-txt{white-space:nowrap}
 .leg a:hover{background:#DBE6ED}
 .leg.same{border-left-color:#B6C4BF;background:#EFF2F1}
+/* 住宿 → 當天第一站。虛線左框表示「這段跨夜」，與日間的實線段區隔 */
+.leg.leg-day{border-left-style:dashed;background:#EDF1F4}
+.l-stay{color:var(--ink3);font-size:10px;border:1px solid #C3D0D6;border-radius:2px;
+  padding:0 3px;margin-right:5px;background:#fff}
 .l-ico{color:var(--aoike);font-weight:700;font-size:13px}
 .leg.same .l-ico{color:#9AAAA5}
 .l-approx{color:var(--ink3);font-size:10px;border:1px solid #C3D0D6;border-radius:2px;padding:0 3px;margin-right:5px}
-.l-go{margin-left:auto;color:var(--aoike);font-size:11px;white-space:nowrap}
+.l-go{margin-left:auto;color:var(--aoike);font-size:11px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .seq{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
   border-radius:50%;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;
   font-weight:700;flex:0 0 21px;margin-right:8px}
@@ -570,7 +577,8 @@ const SPOTS = [
 {
   id:"zuihoden", day:2, name:"瑞鳳殿", jp:"瑞鳳殿", romaji:"Zuihōden",
   type:"古蹟", stay:"60 分", time:"08:30",
-  lat:38.2504, lng:140.8667, gq:"瑞鳳殿 仙台", wiki:["瑞鳳殿"],
+  lat:38.2504, lng:140.8667, gq:"瑞鳳殿 仙台",
+  leg:{t:"7 分",d:"2.9 km",src:"osrm",from:"仙台駅",stay:"仙台市區住宿"}, wiki:["瑞鳳殿"],
   desc:"伊達政宗的靈屋，桃山風格的彩色木構，柱頭與斗拱塗上金箔與丹青，密度極高。原建築毀於 1945 年空襲，現存為 1979 年復原、2001 年再修。石階兩側的杉木參道本身就值得走。",
   fields:[["費用","出發前再確認"],["時間","出發前再確認（一般 09:00 起）"],["停車","有專用停車場"],["備註","石階略陡，來回約 15 分"]],
   photo:"正面全金的唐門在早晨側光下最出色，逆光會整個過曝。",
@@ -646,7 +654,8 @@ const SPOTS = [
 {
   id:"takinoyu", day:3, name:"滝の湯", jp:"滝の湯", romaji:"Taki-no-yu",
   type:"溫泉", stay:"45 分", time:"08:00",
-  lat:38.7418, lng:140.7203, gq:"鳴子温泉 滝の湯", wiki:["鳴子温泉"],
+  lat:38.7418, lng:140.7203, gq:"鳴子温泉 滝の湯",
+  leg:{t:"步行 8 分",d:"0.6 km",src:"walk",from:"鳴子温泉駅",stay:"鳴子溫泉旅館"}, wiki:["鳴子温泉"],
   desc:"鳴子溫泉神社的御神湯，千年以上的共同浴場。全木造、兩槽、無循環無加水，白濁的硫磺泉從高處以「滝」的形式落下，聲音很大。沒有洗髮精沐浴乳，要自備。",
   fields:[["費用","出發前再確認"],["時間","出發前再確認"],["備註","無盥洗用品，需自備毛巾"],["泉質","酸性・含硫磺"]],
   tip:"這天只開 49 分鐘，是六天裡唯一的喘息日，不要急著出發。",
@@ -704,7 +713,8 @@ const SPOTS = [
 {
   id:"yamadera", day:4, name:"山寺・立石寺", jp:"宝珠山立石寺", romaji:"Hōju-san Risshaku-ji",
   type:"古蹟", stay:"110 分", time:"09:40",
-  lat:38.3131, lng:140.4346, gq:"宝珠山立石寺", leg:{t:"57 分",d:"49.8 km",src:"google"}, wiki:["立石寺"],
+  lat:38.3131, lng:140.4346, gq:"宝珠山立石寺",
+  leg:{t:"57 分",d:"49.8 km",src:"google",from:"銀山温泉",stay:"銀山溫泉旅館"}, wiki:["立石寺"],
   desc:"貞觀 2 年（860）圓仁開山，堂宇散布在凝灰岩的岩峰上。從山門到奧之院要爬 1,015 階，途中的岩壁上密布著後人鑿出的納經窟。芭蕉在《奧の細道》寫下「閑さや岩にしみ入る蝉の声」就是在這裡。",
   fields:[["階梯","山門→奧之院 1,015 階，來回約 90–110 分"],["費用","出發前再確認"],["停車","山門前有多處民營收費停車場"],["備註","全程石階，需好走的鞋；雨天濕滑"]],
   tip:"這天行車 3:14 是六天最長，山寺又要爬 1,015 階。體力吃緊的話可只到半山的仁王門（約 400 階）折返。",
@@ -742,7 +752,8 @@ const SPOTS = [
 {
   id:"tsurugajo", day:5, name:"鶴ヶ城", jp:"鶴ヶ城（会津若松城）", romaji:"Tsuruga-jō",
   type:"城跡・庭園", stay:"90 分", time:"08:30",
-  lat:37.4878, lng:139.9297, gq:"鶴ヶ城 会津若松", wiki:["若松城"],
+  lat:37.4878, lng:139.9297, gq:"鶴ヶ城 会津若松",
+  leg:{t:"5 分",d:"2.7 km",src:"osrm",from:"会津若松駅",stay:"會津若松站前住宿"}, wiki:["若松城"],
   desc:"戊辰戰爭中被新政府軍圍攻一個月而未陷落的城，天守於 1965 年重建，2011 年把屋瓦換回幕末的赤瓦——全日本現在只有這裡是紅瓦天守。天守內是鄉土博物館，最上層可俯瞰會津盆地。",
   fields:[["費用","出發前再確認"],["時間","出發前再確認（一般 08:30–17:00，入場至 16:30）"],["停車","西出丸等多處收費停車場"],["同區","茶室麟閣可共通券入場"]],
   tip:"排在早上是刻意的——天守 16:30 就停止入場，D4 傍晚才到會津的話一定來不及。",
@@ -820,7 +831,8 @@ const SPOTS = [
 {
   id:"okama", day:6, name:"藏王御釜", jp:"蔵王お釜（刈田岳）", romaji:"Zaō Okama",
   type:"高山", stay:"60 分", time:"08:40",
-  lat:38.1361549, lng:140.4495672, gq:"蔵王の御釜", leg:{t:"39 分",d:"25.1 km",src:"google"}, wiki:["御釜 (蔵王連峰)","蔵王連峰"],
+  lat:38.1361549, lng:140.4495672, gq:"蔵王の御釜",
+  leg:{t:"39 分",d:"25.1 km",src:"google",from:"遠刈田温泉",stay:"遠刈田溫泉旅館"}, wiki:["御釜 (蔵王連峰)","蔵王連峰"],
   desc:"五色岳、刈田岳與熊野岳圍成的火口湖，直徑約 360 公尺。湖水因強酸與所含礦物而呈翡翠綠，且會隨光線與季節改變色調，所以又叫「五色沼」——與福島那個同名但無關。停車場就在火口緣，下車走幾分鐘即達。",
   fields:[["道路","蔵王エコーライン →蔵王ハイライン（收費）"],["時間","ハイライン 7:30–17:00（入場至 16:30）"],["夜間封閉","10 月中旬才開始，9/27 不受影響"],["停車","刈田岳山頂駐車場（ハイライン通行費含）"],["備註","海拔約 1,700 m，山上比平地低 10℃ 以上，強風"]],
   tip:"看天吃飯——起霧時什麼都看不到。好在它只是 40 分鐘的支線，白跑也不影響班機。",
@@ -983,17 +995,22 @@ function cardHTML(s,seq){
 
 // 兩張行程卡之間的車程。起點與終點一律用「地名」帶進 Google 路線，不用座標。
 // 距離與時間是靜態資料（寫在 guide_data.js），不在瀏覽器端呼叫任何 API——離線要能用。
+// a 為 null 時代表這是「住宿 → 當天第一站」，起點取 leg.from（住宿地地名）。
+// 每天第一張卡的前面沒有卡可以當起點，但那段路還是要開——不畫就等於漏掉一段車程。
 function legHTML(a,b){
   const L=b.leg; if(!L||L.src==='same') return '';
   const mode=L.src==='walk'?'walking':'driving';
-  const o=a.gq||a.jp||a.name, d=b.gq||b.jp||b.name;
+  const o=a?(a.gq||a.jp||a.name):L.from; if(!o) return '';
+  const d=b.gq||b.jp||b.name;
   const url=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}`
           +`&destination=${encodeURIComponent(d)}&travelmode=${mode}`;
   const ap=L.src==='osrm'?'<span class="l-approx">約</span>':'';
-  return `<div class="leg" data-day="${b.day}" data-from="${a.id}" data-to="${b.id}">
+  const stay=a?'':`<span class="l-stay">${esc(L.stay||'住宿')}</span>`;
+  return `<div class="leg${a?'':' leg-day'}" data-day="${b.day}" `
+    +`data-from="${a?a.id:'lodging'}" data-to="${b.id}">
     <a href="${url}" target="_blank" rel="noopener" aria-label="${esc(o)} 到 ${esc(d)} 的路線">
       <span class="l-ico">↓</span>
-      <span class="l-txt">${ap}<span class="leg-time">${esc(L.t)}</span>・<span class="leg-dist">${esc(L.d)}</span></span>
+      <span class="l-txt">${stay}${ap}<span class="leg-time">${esc(L.t)}</span>・<span class="leg-dist">${esc(L.d)}</span></span>
       <span class="l-go">${esc(o)} → ${esc(d)} ↗</span></a></div>`;
 }
 
@@ -1005,7 +1022,11 @@ function render(){
     const hay=(s.name+s.jp+s.romaji+s.type+s.desc+(s.keys||'')+(s.tip||'')+(s.photo||'')).toLowerCase();
     return hay.includes(query);
   });
-  countEl.textContent=`${shown.length} / ${SPOTS.length} 個景點`;
+  // 晚餐卡不是景點——混進總數會讓「31 個景點」變成 36，數字對不上 ITINERARY
+  const isDin=x=>/^dinner-/.test(x.id);
+  const nSp=shown.filter(x=>!isDin(x)).length, nDn=shown.length-nSp;
+  const totSp=SPOTS.filter(x=>!isDin(x)).length;
+  countEl.textContent=`${nSp} / ${totSp} 個景點`+(nDn?`・${nDn} 餐`:'');
   if(!shown.length){
     listEl.innerHTML=`<div class="empty">沒有符合的景點。試試清空搜尋或改選其他日期。</div>`;
   }else{
@@ -1018,7 +1039,8 @@ function render(){
           <span class="r">${DAYS[cur].route}</span>
           <span class="d">${DAYS[cur].date}</span><span class="line"></span></div>`;}
       seq++;
-      if(withLegs&&prev) html+=legHTML(prev,s);
+      // prev 為 null（每天第一張）時 legHTML 會改用 leg.from＝住宿地；沒有 from 就自然不畫
+      if(withLegs) html+=legHTML(prev,s);
       html+=cardHTML(s,seq);
       prev=s;
     });
@@ -1068,6 +1090,7 @@ function layoutLabels(day){
   // 先還原上一次的併點結果
   mks.forEach(g=>{
     g.style.display='';
+    g.removeAttribute('data-covers'); g.removeAttribute('data-merged');
     const t=g.querySelector('.m-seq');
     if(t){ if(!t.dataset.orig) t.dataset.orig=t.textContent; t.textContent=t.dataset.orig; }
     g.querySelector('.m-dot-seq').classList.remove('wide');
@@ -1095,7 +1118,9 @@ function layoutLabels(day){
     head.querySelector('.m-dot-seq').classList.add('wide');
     const hl=head.querySelector('.m-lbl');
     if(hl) hl.textContent=hl.dataset.orig+`（${gr.items.length} 站）`;
-    gr.items.slice(1).forEach(g=>g.style.display='none');
+    // 併點要留下痕跡：head 記下它代表哪幾個 id，被吸收的記下自己併進了誰
+    head.dataset.covers=gr.items.map(g=>g.dataset.id).join(' ');
+    gr.items.slice(1).forEach(g=>{g.style.display='none';g.dataset.merged=head.dataset.id;});
   });
   mks=mks.filter(g=>g.style.display!=='none');
   const cands=[[11,4,'start'],[-11,4,'end'],[11,-12,'start'],[-11,-12,'end'],

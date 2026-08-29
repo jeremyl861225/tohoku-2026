@@ -58,14 +58,21 @@ a{color:var(--sign)}
 svg.map{width:100%;height:auto;display:block;border:1px solid var(--rule2);border-radius:2px}
 .leg{margin:0 0 14px 0;border-left:3px solid var(--aoike);background:#E8EFF3;
   border-radius:0 3px 3px 0}
-.leg a{display:flex;align-items:center;gap:9px;padding:8px 14px;
+/* 手機寬度放不下時，讓「起點 → 終點」整條掉到第二行，而不是把時間距離折成兩截 */
+.leg a{display:flex;flex-wrap:wrap;align-items:center;gap:3px 9px;padding:8px 14px;
   font-family:var(--mono);font-size:12px;color:var(--ink2);text-decoration:none}
+.l-txt{white-space:nowrap}
 .leg a:hover{background:#DBE6ED}
 .leg.same{border-left-color:#B6C4BF;background:#EFF2F1}
+/* 住宿 → 當天第一站。虛線左框表示「這段跨夜」，與日間的實線段區隔 */
+.leg.leg-day{border-left-style:dashed;background:#EDF1F4}
+.l-stay{color:var(--ink3);font-size:10px;border:1px solid #C3D0D6;border-radius:2px;
+  padding:0 3px;margin-right:5px;background:#fff}
 .l-ico{color:var(--aoike);font-weight:700;font-size:13px}
 .leg.same .l-ico{color:#9AAAA5}
 .l-approx{color:var(--ink3);font-size:10px;border:1px solid #C3D0D6;border-radius:2px;padding:0 3px;margin-right:5px}
-.l-go{margin-left:auto;color:var(--aoike);font-size:11px;white-space:nowrap}
+.l-go{margin-left:auto;color:var(--aoike);font-size:11px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .seq{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
   border-radius:50%;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;
   font-weight:700;flex:0 0 21px;margin-right:8px}
@@ -330,17 +337,22 @@ function cardHTML(s,seq){
 
 // 兩張行程卡之間的車程。起點與終點一律用「地名」帶進 Google 路線，不用座標。
 // 距離與時間是靜態資料（寫在 guide_data.js），不在瀏覽器端呼叫任何 API——離線要能用。
+// a 為 null 時代表這是「住宿 → 當天第一站」，起點取 leg.from（住宿地地名）。
+// 每天第一張卡的前面沒有卡可以當起點，但那段路還是要開——不畫就等於漏掉一段車程。
 function legHTML(a,b){
   const L=b.leg; if(!L||L.src==='same') return '';
   const mode=L.src==='walk'?'walking':'driving';
-  const o=a.gq||a.jp||a.name, d=b.gq||b.jp||b.name;
+  const o=a?(a.gq||a.jp||a.name):L.from; if(!o) return '';
+  const d=b.gq||b.jp||b.name;
   const url=`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}`
           +`&destination=${encodeURIComponent(d)}&travelmode=${mode}`;
   const ap=L.src==='osrm'?'<span class="l-approx">約</span>':'';
-  return `<div class="leg" data-day="${b.day}" data-from="${a.id}" data-to="${b.id}">
+  const stay=a?'':`<span class="l-stay">${esc(L.stay||'住宿')}</span>`;
+  return `<div class="leg${a?'':' leg-day'}" data-day="${b.day}" `
+    +`data-from="${a?a.id:'lodging'}" data-to="${b.id}">
     <a href="${url}" target="_blank" rel="noopener" aria-label="${esc(o)} 到 ${esc(d)} 的路線">
       <span class="l-ico">↓</span>
-      <span class="l-txt">${ap}<span class="leg-time">${esc(L.t)}</span>・<span class="leg-dist">${esc(L.d)}</span></span>
+      <span class="l-txt">${stay}${ap}<span class="leg-time">${esc(L.t)}</span>・<span class="leg-dist">${esc(L.d)}</span></span>
       <span class="l-go">${esc(o)} → ${esc(d)} ↗</span></a></div>`;
 }
 
@@ -352,7 +364,11 @@ function render(){
     const hay=(s.name+s.jp+s.romaji+s.type+s.desc+(s.keys||'')+(s.tip||'')+(s.photo||'')).toLowerCase();
     return hay.includes(query);
   });
-  countEl.textContent=`${shown.length} / ${SPOTS.length} 個景點`;
+  // 晚餐卡不是景點——混進總數會讓「31 個景點」變成 36，數字對不上 ITINERARY
+  const isDin=x=>/^dinner-/.test(x.id);
+  const nSp=shown.filter(x=>!isDin(x)).length, nDn=shown.length-nSp;
+  const totSp=SPOTS.filter(x=>!isDin(x)).length;
+  countEl.textContent=`${nSp} / ${totSp} 個景點`+(nDn?`・${nDn} 餐`:'');
   if(!shown.length){
     listEl.innerHTML=`<div class="empty">沒有符合的景點。試試清空搜尋或改選其他日期。</div>`;
   }else{
@@ -365,7 +381,8 @@ function render(){
           <span class="r">${DAYS[cur].route}</span>
           <span class="d">${DAYS[cur].date}</span><span class="line"></span></div>`;}
       seq++;
-      if(withLegs&&prev) html+=legHTML(prev,s);
+      // prev 為 null（每天第一張）時 legHTML 會改用 leg.from＝住宿地；沒有 from 就自然不畫
+      if(withLegs) html+=legHTML(prev,s);
       html+=cardHTML(s,seq);
       prev=s;
     });
@@ -415,6 +432,7 @@ function layoutLabels(day){
   // 先還原上一次的併點結果
   mks.forEach(g=>{
     g.style.display='';
+    g.removeAttribute('data-covers'); g.removeAttribute('data-merged');
     const t=g.querySelector('.m-seq');
     if(t){ if(!t.dataset.orig) t.dataset.orig=t.textContent; t.textContent=t.dataset.orig; }
     g.querySelector('.m-dot-seq').classList.remove('wide');
@@ -442,7 +460,9 @@ function layoutLabels(day){
     head.querySelector('.m-dot-seq').classList.add('wide');
     const hl=head.querySelector('.m-lbl');
     if(hl) hl.textContent=hl.dataset.orig+`（${gr.items.length} 站）`;
-    gr.items.slice(1).forEach(g=>g.style.display='none');
+    // 併點要留下痕跡：head 記下它代表哪幾個 id，被吸收的記下自己併進了誰
+    head.dataset.covers=gr.items.map(g=>g.dataset.id).join(' ');
+    gr.items.slice(1).forEach(g=>{g.style.display='none';g.dataset.merged=head.dataset.id;});
   });
   mks=mks.filter(g=>g.style.display!=='none');
   const cands=[[11,4,'start'],[-11,4,'end'],[11,-12,'start'],[-11,-12,'end'],

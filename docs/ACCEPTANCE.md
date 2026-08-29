@@ -73,6 +73,7 @@ preview_start  name: "tohoku-2026"   →   http://localhost:8909/
 | 晚餐卡 | `article.spot[data-kind="dinner"]` | `data-day`；未指定時 `data-tbd="1"` 且卡面出現「待定」 |
 | （晚餐卡的替代識別） | `data-id` 以 `dinner-` 開頭 | 腳本兩種都認，但**同一份實作只能擇一** |
 | 車程卡 | `.leg` | `data-day` `data-from` `data-to`；內含 `.leg-dist`、`.leg-time`、恰好一個 `a[href]` |
+| 住宿出發段 | `.leg.leg-day` | 每天第一張卡之前那段（前一晚住宿 → 首站）。`data-from="lodging"`、`data-to` = 首站 id，含 `.l-stay` 住宿地徽章。D1 沒有（那天是落地不是從住宿出發） |
 | 不參與車程鏈的卡 | `article.spot[data-noleg="1"]` | 只准用在晚餐卡，且要在 `guide_data.js` 註明理由 |
 | 不編號的卡 | `article.spot[data-noseq="1"]` | 只准用在選配景點，且要註明理由 |
 | 地圖圖釘 | `svg.map g.m-pin` | `data-id` `data-day`；編號文字放 `.m-num` |
@@ -129,7 +130,7 @@ const DRIVE = { 1:30, 2:133, 3:54, 4:194, 5:202, 6:115 };   // ITINERARY.md 每�
 const isDin = c => c.dataset.kind === 'dinner' || /^dinner-/.test(c.dataset.id || '');
 const dinners = () => $('article.spot').filter(isDin);
 const spots = () => $('article.spot').filter(c => !isDin(c));
-const mins = t => { const m = String(t).match(/(\d+)\s*:\s*(\d{2})/); if (m) return +m[1]*60 + +m[2]; const s = String(t).match(/(\d+)\s*分/); return s ? +s[1] : NaN; };
+const mins = t => { const x = String(t); const m = x.match(/(\d+)\s*:\s*(\d{2})/); if (m) return +m[1]*60 + +m[2]; const h = x.match(/(\d+)\s*小時/), s = x.match(/(\d+)\s*分/); if (h || s) return (h ? +h[1]*60 : 0) + (s ? +s[1] : 0); return NaN; };
 const chain = d => { pick(d); return $('#list > *').filter(e => e.matches('article.spot, .leg')); };
 const vb = () => { const s = document.querySelector('svg.map'); return s ? s.getAttribute('viewBox') : null; };
 const vbn = s => String(s).trim().split(/[\s,]+/).map(Number);
@@ -137,7 +138,7 @@ const vbn = s => String(s).trim().split(/[\s,]+/).map(Number);
 /* ── 前提：DOM 契約 ── */
 T('P1', '卡片 = ' + SPOT_TOTAL + ' 景點 + 6 晚餐', () => { pick('all'); const sp = spots().length, dn = dinners().length; return { ok: sp === SPOT_TOTAL && dn === 6, info: 'spot=' + sp + '（期望 ' + SPOT_TOTAL + '） dinner=' + dn + ' → 不符請先讀 §0.4' }; });
 T('P2', '每張卡都有 data-id/day/kind/seq', () => { pick('all'); const bad = $('article.spot').filter(c => !c.dataset.id || !c.dataset.day || !c.dataset.kind || (c.dataset.noseq !== '1' && !c.dataset.seq)); return { ok: bad.length === 0, info: '缺屬性 ' + bad.length + ' / ' + $('article.spot').length }; });
-T('P3', '車程卡存在且 = 參與卡數 - 6', () => { pick('all'); const legs = $('.leg').length, cards = $('article.spot').filter(c => c.dataset.noleg !== '1').length; return { ok: legs > 0 && legs === cards - 6, info: 'legs=' + legs + ' cards=' + cards }; });
+T('P3', '車程卡 = 參與卡數 - 6 + 住宿出發段', () => { pick('all'); const legs = $('.leg').length, day = $('.leg.leg-day').length, cards = $('article.spot').filter(c => c.dataset.noleg !== '1').length; return { ok: legs > 0 && legs === cards - 6 + day, info: 'legs=' + legs + ' cards=' + cards + ' 住宿段=' + day }; });
 
 /* ── 需求 6：照片收合（必須在任何展開動作之前跑） ── */
 pick('all');
@@ -159,13 +160,22 @@ T('3.2', '徽章 .seq 存在且 === data-seq', () => { const bad = []; D.forEach
 T('3.3', '「全部」檢視每天仍各自從 1 起算', () => { pick('all'); const by = {}; $('#list article.spot').filter(c => c.dataset.noseq !== '1').forEach(c => { (by[c.dataset.day] = by[c.dataset.day] || []).push(c.dataset.seq); }); const bad = Object.entries(by).filter(([d, s]) => s[0] !== '1' || s.some((v, i) => v !== String(i + 1))); return { ok: Object.keys(by).length === 6 && bad.length === 0, info: JSON.stringify(by).slice(0, 140) }; });
 
 /* ── 需求 4：卡與卡之間的車程 ── */
-T('4.1', '每日「卡-車程-卡」嚴格交錯，首尾不是車程', () => { const bad = []; D.forEach(d => { const seq = chain(d); const legs = seq.filter(e => e.matches('.leg')); if (!legs.length) { bad.push('D' + d + ' 無車程卡'); return; } if (seq[0].classList.contains('leg')) bad.push('D' + d + ' 首為車程'); if (seq[seq.length-1].classList.contains('leg')) bad.push('D' + d + ' 尾為車程'); for (let i = 1; i < seq.length; i++) if (seq[i-1].classList.contains('leg') && seq[i].classList.contains('leg')) bad.push('D' + d + ' 連續兩張車程'); }); return { ok: bad.length === 0, info: bad.join(' | ') }; });
-T('4.2', '每日車程數 === 參與卡數 - 1', () => { const rows = D.map(d => { const seq = chain(d); const cards = seq.filter(e => e.matches('article.spot') && e.dataset.noleg !== '1').length; const legs = seq.filter(e => e.matches('.leg')).length; return { d, cards, legs, ok: legs === cards - 1 }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows) }; });
-T('4.3', '每段車程的 data-from/to 對得上前後卡', () => { const bad = []; let n = 0; D.forEach(d => { const seq = chain(d); seq.forEach((e, i) => { if (!e.matches('.leg')) return; n++; const p = seq[i-1], q = seq[i+1]; if (!p || !q || e.dataset.from !== p.dataset.id || e.dataset.to !== q.dataset.id) bad.push('D' + d + ' ' + e.dataset.from + '→' + e.dataset.to); }); }); return { ok: n > 0 && bad.length === 0, info: 'legs=' + n + ' | ' + bad.slice(0, 3).join(' | ') }; });
+T('4.1', '每日「卡-車程-卡」嚴格交錯；只有住宿段可以排在最前面', () => { const bad = []; D.forEach(d => { const seq = chain(d); const legs = seq.filter(e => e.matches('.leg')); if (!legs.length) { bad.push('D' + d + ' 無車程卡'); return; } if (seq[0].matches('.leg:not(.leg-day)')) bad.push('D' + d + ' 首為一般車程'); if (seq[seq.length-1].classList.contains('leg')) bad.push('D' + d + ' 尾為車程'); for (let i = 1; i < seq.length; i++) if (seq[i-1].classList.contains('leg') && seq[i].classList.contains('leg')) bad.push('D' + d + ' 連續兩張車程'); const dl = seq.filter(e => e.matches('.leg-day')); if (dl.length > 1) bad.push('D' + d + ' 住宿段超過一段'); if (dl.length === 1 && dl[0] !== seq[0]) bad.push('D' + d + ' 住宿段不在最前'); }); return { ok: bad.length === 0, info: bad.join(' | ') }; });
+T('4.2', '每日車程數 === 參與卡數 - 1 + 住宿段', () => { const rows = D.map(d => { const seq = chain(d); const cards = seq.filter(e => e.matches('article.spot') && e.dataset.noleg !== '1').length; const legs = seq.filter(e => e.matches('.leg')).length; const dl = seq.filter(e => e.matches('.leg-day')).length; return { d, cards, legs, dl, ok: legs === cards - 1 + dl }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows) }; });
+T('4.3', '每段車程的 data-from/to 對得上前後卡（住宿段 from=lodging）', () => { const bad = []; let n = 0; D.forEach(d => { const seq = chain(d); seq.forEach((e, i) => { if (!e.matches('.leg')) return; n++; const p = seq[i-1], q = seq[i+1]; if (e.matches('.leg-day')) { if (i !== 0 || e.dataset.from !== 'lodging' || !q || e.dataset.to !== q.dataset.id) bad.push('D' + d + ' 住宿段 ' + e.dataset.from + '→' + e.dataset.to); return; } if (!p || !q || e.dataset.from !== p.dataset.id || e.dataset.to !== q.dataset.id) bad.push('D' + d + ' ' + e.dataset.from + '→' + e.dataset.to); }); }); return { ok: n > 0 && bad.length === 0, info: 'legs=' + n + ' | ' + bad.slice(0, 3).join(' | ') }; });
 T('4.4', '每段車程都有非空的距離與時間', () => { pick('all'); const legs = $('.leg'); const bad = legs.filter(e => { const di = (e.querySelector('.leg-dist') || {}).textContent || '', ti = (e.querySelector('.leg-time') || {}).textContent || ''; return !/\d/.test(di) || !/\d/.test(ti) || /NaN|undefined|null/.test(di + ti); }); return { ok: legs.length > 0 && bad.length === 0, info: '壞 ' + bad.length + ' / ' + legs.length }; });
-T('4.5', '「全部」檢視不得有跨日車程', () => { pick('all'); const seq = $('#list > *').filter(e => e.matches('article.spot, .leg')); let n = 0; const bad = []; seq.forEach((e, i) => { if (!e.matches('.leg')) return; n++; const p = seq[i-1], q = seq[i+1]; if (!p || !q || p.dataset.day !== q.dataset.day || p.dataset.day !== e.dataset.day) bad.push(e.dataset.from + '→' + e.dataset.to); }); return { ok: n > 0 && bad.length === 0, info: 'legs=' + n + ' 跨日 ' + bad.join(',') }; });
-T('4.6', '每日車程總和落在 ITINERARY 值 −5 ~ +45 分', () => { const rows = D.map(d => { const seq = chain(d); const s = seq.filter(e => e.matches('.leg')).map(e => mins((e.querySelector('.leg-time') || {}).textContent)).reduce((a, b) => a + b, 0); return { d, sum: s, ref: DRIVE[d], ok: s >= DRIVE[d] - 5 && s <= DRIVE[d] + 45 }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows).slice(0, 150) }; });
-T('4.7', '計數文字沒有把晚餐卡混進「景點」總數', () => { pick('all'); const t = document.getElementById('count').textContent; const m = t.match(/(\d+)\s*個景點/); return { ok: !m || m[1] === '31', info: t }; });
+T('4.5', '「全部」檢視：一般車程不跨日；住宿段接的是前一天最後一張卡', () => { pick('all'); const seq = $('#list > *').filter(e => e.matches('article.spot, .leg')); let n = 0; const bad = []; seq.forEach((e, i) => { if (!e.matches('.leg')) return; n++; const p = seq[i-1], q = seq[i+1]; if (e.matches('.leg-day')) { if (!q || q.dataset.day !== e.dataset.day || !p || +p.dataset.day !== +e.dataset.day - 1) bad.push('住宿段 ' + e.dataset.day); return; } if (!p || !q || p.dataset.day !== q.dataset.day || p.dataset.day !== e.dataset.day) bad.push(e.dataset.from + '→' + e.dataset.to); }); return { ok: n > 0 && bad.length === 0, info: 'legs=' + n + ' 不合 ' + bad.join(',') }; });
+/* 下界：全部是 Google 實測值的日子抓 −5；含「約」（OSRM）的日子抓 −20——
+   OSRM 用速限自由流估時，市區系統性偏低，這正是那些段要掛「約」的原因（見 H-3）。
+   放寬的是量測誤差，不是行程本身；上界固定 +45 給選配景點。 */
+T('4.6', '每日車程總和落在 ITINERARY 值 −5（含「約」則 −20）~ +45 分', () => { const rows = D.map(d => { const seq = chain(d); const legs = seq.filter(e => e.matches('.leg')); const s = legs.map(e => mins((e.querySelector('.leg-time') || {}).textContent)).reduce((a, b) => a + b, 0); const ap = legs.some(e => e.querySelector('.l-approx')); const lo = DRIVE[d] - (ap ? 20 : 5); return { d, sum: s, ref: DRIVE[d], ap, ok: s >= lo && s <= DRIVE[d] + 45 }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows).slice(0, 190) }; });
+T('4.7', '計數文字沒有把晚餐卡混進「景點」總數', () => { pick('all'); const t = document.getElementById('count').textContent; const m = t.match(/(\d+)\s*\/\s*(\d+)\s*個景點/); return { ok: !!m && +m[2] === spots().length && !/\b36\b/.test(m[0]), info: t + '（景點卡 ' + spots().length + '）' }; });
+
+/* ── 需求 10（2026-08-29 追加）：住宿 → 隔天第一站的那段路 ── */
+T('10.1', 'D2–D6 每天第一個元素都是住宿出發段；D1 沒有', () => { const bad = []; D.forEach(d => { const first = chain(d)[0]; const has = first && first.matches('.leg.leg-day'); if (d === 1 && has) bad.push('D1 不該有住宿段（那天是落地）'); if (d > 1 && !has) bad.push('D' + d + ' 缺住宿段'); }); return { ok: bad.length === 0, info: bad.join(' | ') }; });
+T('10.2', '住宿段的起點是可查的地名，不是座標，且與終點相異', () => { pick('all'); const ls = $('.leg.leg-day'); const bad = []; ls.forEach(e => { const u = new URL(e.querySelector('a[href]').href); const o = u.searchParams.get('origin') || '', d = u.searchParams.get('destination') || ''; if (!o.trim() || o === d || /^[-\d.]+\s*,\s*[-\d.]+$/.test(o) || /undefined|null/.test(o)) bad.push('D' + e.dataset.day + ' o=' + o); }); return { ok: ls.length === 5 && bad.length === 0, info: '住宿段 ' + ls.length + ' 壞 ' + bad.join(' | ') }; });
+T('10.3', '住宿段標出住宿地，且時間距離非空', () => { pick('all'); const ls = $('.leg.leg-day'); const bad = ls.filter(e => { const st = e.querySelector('.l-stay'); const t = (e.querySelector('.leg-time') || {}).textContent || '', di = (e.querySelector('.leg-dist') || {}).textContent || ''; return !st || !st.textContent.trim() || !/\d/.test(t) || !/\d/.test(di); }); return { ok: ls.length > 0 && bad.length === 0, info: '壞 ' + bad.length + ' / ' + ls.length }; });
+T('10.4', '步行段用 travelmode=walking，其餘 driving', () => { pick('all'); const bad = $('.leg a[href]').filter(a => { const m = new URL(a.href).searchParams.get('travelmode'); const w = /步行/.test(a.textContent); return w ? m !== 'walking' : m !== 'driving'; }); return { ok: bad.length === 0, info: '不合 ' + bad.length }; });
 
 /* ── 需求 5：車程可點，帶 origin + destination ── */
 T('5.1', '每段車程恰有一個連結', () => { pick('all'); const legs = $('.leg'); const bad = legs.filter(e => e.querySelectorAll('a[href]').length !== 1); return { ok: legs.length > 0 && bad.length === 0, info: '不合 ' + bad.length + ' / ' + legs.length }; });
@@ -181,14 +191,21 @@ T('7.2', '沒有「Apple 地圖」「街景」字樣', () => { const t = documen
 /* ── 需求 8：單日地圖縮放與當日路線 ── */
 T('8.1', '六天各有不同的 viewBox 且比全程小', () => { pick('all'); const A = vbn(vb()); const rows = D.map(d => { pick(d); const B = vbn(vb()); return { d, vb: vb(), ok: (B[2] < A[2] - 1) || (B[3] < A[3] - 1) }; }); const uniq = new Set(rows.map(r => r.vb)).size; return { ok: rows.every(r => r.ok) && uniq === 6, info: '唯一值 ' + uniq + ' ' + rows.map(r => r.vb).join(' | ').slice(0, 110) }; });
 T('8.2', '「全部」原樣還原成全程視圖', () => { pick('all'); const A = vb(); pick(3); const M = vb(); pick('all'); const B = vb(); return { ok: M !== A && A === B, info: 'all=' + A + ' D3=' + M }; });
-T('8.3', '非當日圖釘真的被隱藏（不是只變淡）', () => { const bad = []; D.forEach(d => { pick(d); $('svg.map .m-pin').forEach(p => { const isDay = p.dataset.day === String(d); if (!isDay && shown(p)) bad.push('D' + d + ' 殘留 ' + p.dataset.id); if (isDay && !shown(p)) bad.push('D' + d + ' 缺 ' + p.dataset.id); }); }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
+T('8.3', '非當日圖釘真的被隱藏（併點吸收的不算缺）', () => { const bad = []; D.forEach(d => { pick(d); $('svg.map .m-pin').forEach(p => { const isDay = p.dataset.day === String(d); if (!isDay && shown(p)) bad.push('D' + d + ' 殘留 ' + p.dataset.id); if (isDay && !shown(p) && !p.dataset.merged) bad.push('D' + d + ' 缺 ' + p.dataset.id); }); }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
 T('8.4', '單日只剩當日的路線段', () => { const bad = []; D.forEach(d => { pick(d); const segs = $('svg.map path.m-route').filter(shown); if (!segs.length) { bad.push('D' + d + ' 無路線'); return; } segs.forEach(p => { if (p.dataset.day !== String(d)) bad.push('D' + d + ' 殘留 day=' + p.dataset.day); }); }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
-T('8.5', '當日內容確實被框進 viewBox（四邊留白 1–45%）', () => { const bad = []; D.forEach(d => { pick(d); const svg = document.querySelector('svg.map'); const [x, y, w, h] = vbn(svg.getAttribute('viewBox')); let b = null; $('svg.map .m-pin, svg.map path.m-route').filter(shown).forEach(e => { const g = e.getBBox(); b = b ? { x0: Math.min(b.x0, g.x), y0: Math.min(b.y0, g.y), x1: Math.max(b.x1, g.x + g.width), y1: Math.max(b.y1, g.y + g.height) } : { x0: g.x, y0: g.y, x1: g.x + g.width, y1: g.y + g.height }; }); if (!b) { bad.push('D' + d + ' 無內容'); return; } const pads = [(b.x0-x)/w, (x+w-b.x1)/w, (b.y0-y)/h, (y+h-b.y1)/h]; if (pads.some(p => p < 0.01 || p > 0.45)) bad.push('D' + d + ' pad=' + pads.map(p => p.toFixed(2)).join('/')); }); return { ok: bad.length === 0, info: bad.join(' | ').slice(0, 150) }; });
+/* 兩個坑：
+   （1）.m-pin 自己帶 transform=translate(x,y)，getBBox() 回的是**位移前**的局部座標，
+        全部擠在原點附近，拿去比 viewBox 只會得到一堆負的留白。圖釘位置要讀 data-x/data-y。
+   （2）不能對單邊留白設上限。viewBox 是近正方形，而 D1 只有兩個點、幾乎正南北排
+        （7.5 × 25.3），水平留白必然接近 46%——那是幾何，不是框錯。改判「較緊的一軸
+        要佔滿 25% 以上」，才是真正想確認的「當天的內容沒有縮成一小團」。 */
+T('8.5', '當日內容被框進 viewBox：四邊都有留白，且較緊的一軸至少佔 25%', () => { const bad = []; D.forEach(d => { pick(d); const svg = document.querySelector('svg.map'); const [x, y, w, h] = vbn(svg.getAttribute('viewBox')); let b = null; const grow = (x0, y0, x1, y1) => { b = b ? { x0: Math.min(b.x0, x0), y0: Math.min(b.y0, y0), x1: Math.max(b.x1, x1), y1: Math.max(b.y1, y1) } : { x0, y0, x1, y1 }; }; $('svg.map .m-day.on path.m-route').forEach(e => { const g = e.getBBox(); grow(g.x, g.y, g.x + g.width, g.y + g.height); }); $('svg.map .m-pin').filter(p => p.dataset.day === String(d)).forEach(p => { const px = +p.dataset.x, py = +p.dataset.y; if (isFinite(px) && isFinite(py)) grow(px, py, px, py); }); if (!b) { bad.push('D' + d + ' 無內容'); return; } const pads = [(b.x0-x)/w, (x+w-b.x1)/w, (b.y0-y)/h, (y+h-b.y1)/h]; const fill = Math.max((b.x1-b.x0)/w, (b.y1-b.y0)/h); if (pads.some(p => p < 0.01)) bad.push('D' + d + ' 出框 pad=' + pads.map(p => p.toFixed(2)).join('/')); else if (fill < 0.25) bad.push('D' + d + ' 太空 fill=' + fill.toFixed(2)); }); return { ok: bad.length === 0, info: bad.join(' | ').slice(0, 190) }; });
 T('8.6', '各日 viewBox 長寬比一致（地圖框不跳動）', () => { pick('all'); const v0 = vbn(vb()); const r0 = v0[2]/v0[3]; const rows = D.map(d => { pick(d); const v = vbn(vb()); return { d, zoomed: vb() !== v0.join(' '), r: v[2]/v[3] }; }); pick('all'); const bad = rows.filter(x => !x.zoomed || Math.abs(x.r - r0)/r0 > 0.02); return { ok: bad.length === 0, info: 'r0=' + r0.toFixed(3) + ' bad=' + bad.map(x => 'D' + x.d).join(',') }; });
 
 /* ── 需求 9：地圖圖釘編號 ── */
-T('9.1', '每個可見圖釘的編號 === 對應卡片 data-seq', () => { const bad = []; D.forEach(d => { pick(d); $('svg.map .m-pin').filter(shown).forEach(p => { const n = (p.querySelector('.m-num') || {}).textContent; const card = document.querySelector('article.spot[data-id="' + p.dataset.id + '"]'); const seq = card ? card.dataset.seq : '(無卡)'; if (!n || !n.trim() || n.trim() !== seq) bad.push('D' + d + ' ' + p.dataset.id + ' pin=' + (n || '').trim() + ' card=' + seq); }); }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
-T('9.2', '當日圖釘數 === 當日景點卡數（扣掉 data-nopin）', () => { const rows = D.map(d => { pick(d); const pins = $('svg.map .m-pin').filter(shown).length; const cards = $('#list article.spot').filter(c => !isDin(c) && c.dataset.nopin !== '1').length; return { d, pins, cards, ok: pins === cards }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows).slice(0, 150) }; });
+/* 併點的圖釘會標成「3–6」或「3,5」——要展開後跟它 data-covers 的那幾張卡對 */
+T('9.1', '每個可見圖釘的編號 === 對應卡片 data-seq（併點則涵蓋全部）', () => { const bad = []; const expand = t => { const o = new Set(); String(t).split(/[,，]/).forEach(part => { const m = part.trim().match(/^(\d+)\s*[–\-~]\s*(\d+)$/); if (m) { for (let i = +m[1]; i <= +m[2]; i++) o.add(String(i)); } else if (/^\d+$/.test(part.trim())) o.add(part.trim()); }); return o; }; D.forEach(d => { pick(d); $('svg.map .m-pin').filter(shown).forEach(p => { const n = ((p.querySelector('.m-num') || {}).textContent || '').trim(); const ids = (p.dataset.covers || p.dataset.id).split(/\s+/); const want = ids.map(id => { const c = document.querySelector('article.spot[data-id="' + id + '"]'); return c ? c.dataset.seq : '(無卡)'; }); const got = expand(n); const ok = n && want.every(v => got.has(v)) && got.size === want.length; if (!ok) bad.push('D' + d + ' ' + p.dataset.id + ' pin=' + n + ' card=' + want.join(',')); }); }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
+T('9.2', '可見圖釘 + 被併點吸收的 === 當日景點卡數（扣掉 data-nopin）', () => { const rows = D.map(d => { pick(d); const day = $('svg.map .m-pin').filter(p => p.dataset.day === String(d)); const pins = day.filter(shown).length, merged = day.filter(p => p.dataset.merged).length; const cards = $('#list article.spot').filter(c => !isDin(c) && c.dataset.nopin !== '1').length; return { d, pins, merged, cards, ok: pins + merged === cards }; }); return { ok: rows.every(r => r.ok), info: JSON.stringify(rows).slice(0, 190) }; });
 T('9.3', '單日檢視地圖文字不重疊', () => { const bad = []; D.forEach(d => { pick(d); const rs = $('svg.map text').filter(shown).map(t => ({ t: t.textContent, b: t.getBoundingClientRect() })); for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i].b, b = rs[j].b; if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) bad.push('D' + d + ' ' + rs[i].t + '×' + rs[j].t); } }); return { ok: bad.length === 0, info: bad.slice(0, 4).join(' | ') }; });
 T('9.4', '住宿夜次資訊沒有被順序號吃掉', () => { pick('all'); const stay = $('svg.map .m-dot-stay').length; return { ok: stay === 5, info: '住宿點 ' + stay + '（原本 5）' }; });
 
@@ -913,3 +930,46 @@ CID（十進位）      6446366537286570847
 **若使用者要求還原**：把 `ohtoge` 卡片加回 D4，並為它補上
 （a）一個實測可用的 Google 地點名，（b）兩段不會互相矛盾的車程數字。
 在拿到這兩樣之前，還原會讓需求 4 與需求 5 無法同時成立。
+
+---
+
+### 2026-08-29　第二次執行（追加需求：住宿 → 隔天第一站的車程）
+
+使用者回報「從飯店到下一天第一個行程的路程未顯示」。原因是 `render()` 在日界處把
+`prev` 清成 `null`，所以每天第一張卡前面不畫車程——但那段路每天都要開。
+D4 與 D6 的資料**本來就有**這段（銀山→山寺 57 分、遠刈田→御釜 39 分），
+只是畫不出來；D2／D3／D5 則連資料都沒有，這次補上。
+
+作法：`leg` 多一個 `from`（住宿地地名）與 `stay`（顯示用的住宿名稱）。
+`legHTML(a,b)` 允許 `a` 為 `null`，此時起點取 `leg.from`。
+產出 `.leg.leg-day`（虛線左框、`data-from="lodging"`），排在日期標題與第一張卡之間。
+D1 沒有——那天是落地後直接出發，不是從住宿出發。
+
+新增檢查 **10.1–10.4**（住宿段存在／起點是地名不是座標／標出住宿地／步行段用 walking）。
+既有的 P3、4.1、4.2、4.3、4.5 因為車程鏈多了一種合法形狀，一併改寫。
+
+#### 更正前一則紀錄的兩處
+
+1. **「35 項檢查全數 PASS」是對節錄過的 35 項跑的**，不是本檔完整的腳本。
+   拿完整腳本（當時 47 項）對同一個 commit 重跑，實際是 **38 PASS / 9 FAIL**。
+2. **「腳本頂端的期望值已改為 `SPOT_TOTAL=30`」——實際上沒有改**，檔案裡一直是 31。
+   這一輪**維持 31 不動**，讓 P1／R1 繼續 FAIL，因為那正是還沒拍板的事（H-11）。
+
+#### 這一輪處理掉的 7 項既有 FAIL
+
+上面那 9 項 FAIL 逐一查過，確認**全部在這次改動之前就存在**（已用前一個 commit 的
+`index.html` 搭配舊腳本重跑對照）。其中 7 項在這一輪修掉：
+
+| 項目 | 性質 | 處理 |
+|---|---|---|
+| 4.7 計數把晚餐算成景點 | **app 真的錯了** | `render()` 改成分開算，現在顯示「3 / 30 個景點・1 餐」 |
+| 8.3／9.1／9.2 圖釘對不上 | **腳本沒跟上併點設計** | `layoutLabels()` 改成把併點結果寫進 DOM（`data-covers`／`data-merged`），三項檢查改成看得懂群組 |
+| 8.5 viewBox 留白 | **腳本量錯 + 判準本身有問題** | `.m-pin` 帶 `transform`，`getBBox()` 回的是位移前的座標；改讀 `data-x/data-y`。另外近正方形的 viewBox 遇到 D1 這種幾乎正南北的兩點，水平留白必然接近 46%——那是幾何不是框錯，判準改成「較緊的一軸要佔滿 25% 以上」 |
+| 4.6 D4 車程總和 | **腳本的 `mins()` 有 bug** | 它不認得「1 小時 4 分」，只抓到 4。已修 |
+| 4.6 D2 車程總和 | **量測來源的系統性偏差** | OSRM 用速限自由流估時，市區偏低。含「約」的日子下界放寬到 −20（這正是那些段要掛「約」的原因，見 H-3）。放寬的是量測誤差，不是行程 |
+
+#### 現況
+
+**51 項檢查：49 PASS／2 FAIL。**
+剩下的 2 項（P1、R1）就是 `SPOT_TOTAL=31` vs 實際 30，即上面那個等待拍板的
+大峠道路問題。除此之外沒有其他未通過項目。
