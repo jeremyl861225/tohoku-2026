@@ -7,7 +7,7 @@
  *   3. 維基照片快取不帶版本號，改版時不會被清掉
  */
 const APP   = 'tohoku-guide-';
-const V     = APP + 'v4';      // 改了 index.html 就把版本號加一
+const V     = APP + 'v5';      // 改了 index.html 就把版本號加一
 const MEDIA = APP + 'media';   // 不帶版本：維基照片跨版本永久保留
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const BASE  = new URL('./', location).pathname;   // '/tohoku-2026/'
